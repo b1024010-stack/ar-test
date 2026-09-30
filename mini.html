@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ジャッチュ お店の電車 AR</title>
+
+  <!-- model-viewer を読み込む -->
+  <script type="module"
+    src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    model-viewer { width: 100vw; height: 100vh; background: #e9eef3; }
+
+    .top {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .back {
+      font-family: "DotGothic16", monospace; font-size: 14px; text-decoration: none;
+      color: #ffb020; background: #0b0b0c; padding: 7px 12px; border-radius: 4px;
+    }
+    .scale { font-size: 12px; color: #555; }
+
+    /* お店の切り替え */
+    .chips {
+      position: absolute; top: 56px; left: 0; right: 0; padding: 0 12px;
+      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: none; padding: 6px 12px; border-radius: 16px; border: 1px solid #b9c2cc;
+      background: #fff; color: #1c2a44; font-size: 13px; cursor: pointer;
+    }
+    .chip.on { background: #1c2a44; color: #fff; border-color: #1c2a44; }
+
+    /* 電光掲示板ふうのお店カード */
+    .card {
+      position: absolute; left: 12px; right: 12px; bottom: 86px; max-width: 480px; margin: 0 auto;
+      background: #050505; border: 5px solid #2a2a2d; border-radius: 6px; padding: 10px 12px;
+      font-family: "DotGothic16", monospace; color: #ffb020; letter-spacing: .04em;
+    }
+    .card .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .card .name { font-size: 20px; color: #f4f1e8; text-shadow: 0 0 3px currentColor; }
+    .card .genre { font-size: 12px; color: #999; }
+    .card .st { font-size: 15px; text-shadow: 0 0 3px currentColor; white-space: nowrap; }
+    .ok { color: #3dff6e; } .few { color: #ffb020; } .full { color: #ff3b30; }
+    .card .menu { margin-top: 6px; font-size: 15px; text-shadow: 0 0 3px currentColor; }
+    .card .catch { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+    .err { position:absolute; top:40%; left:16px; right:16px; max-width:480px; margin:0 auto; padding:12px 14px;
+           background:#fff3f2; border:1px solid #ff3b30; border-radius:6px; color:#9b1c14; font-size:14px; line-height:1.6; }
+    .ar-btn {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 14px 28px; border: none; border-radius: 30px; white-space: nowrap;
+      background: #1a73e8; color: #ffffff; font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <model-viewer id="mv"
+    src="mini-hanamomen.glb?v=5"
+    alt="お店のラッピング電車が走るミニチュア周回モデル"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    ar-placement="floor"
+    ar-scale="auto"
+    camera-controls
+    touch-action="pan-y"
+    camera-orbit="30deg 55deg auto"
+    autoplay
+    animation-name="Loop"
+    shadow-intensity="1">
+
+    <div class="top">
+      <a class="back" href="board.html">← 案内板</a>
+      <span class="scale">1/80 ・ ARでは約88cm×58cm</span>
+    </div>
+
+    <div class="chips" id="chips"></div>
+    <div class="err" id="err" hidden></div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="name" id="cName">—</div>
+          <div class="genre" id="cGenre"></div>
+        </div>
+        <div class="st" id="cSt"></div>
+      </div>
+      <div class="menu" id="cMenu"></div>
+      <div class="catch" id="cCatch"></div>
+    </div>
+
+    <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
+  </model-viewer>
+
+<script src="shops.js"></script>
+<script>
+  const SHOPS = window.JATCHU_SHOPS, ST = window.JATCHU_STATUS;
+  const mv = document.getElementById("mv");
+  const $ = id => document.getElementById(id);
+
+  // URL の ?shop=xxx でお店を決める（なければ花もめん）
+  const qid = new URLSearchParams(location.search).get("shop");
+  let current = SHOPS.find(s => s.id === qid) || SHOPS[0];
+
+  const VER = "v=5";   // モデルを作り直したら数字を1つ増やす
+  const glbOf  = s => `mini-${s.id}.glb?${VER}`;
+  const usdzOf = s => `mini-${s.id}.usdz`;
+
+  // お店の切り替えボタン
+  $("chips").innerHTML = SHOPS.map(s =>
+    `<button class="chip" data-id="${s.id}">${s.name}号</button>`).join("");
+  $("chips").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    current = SHOPS.find(s => s.id === b.dataset.id);
+    history.replaceState(null, "", "?shop=" + current.id);
+    apply();
+  });
+
+  function showCard(){
+    const [label, cls] = ST[current.st];
+    $("cName").textContent  = current.name + "号";
+    $("cGenre").textContent = current.genre;
+    $("cSt").textContent    = label;  $("cSt").className = "st " + cls;
+    $("cMenu").textContent  = current.menu.startsWith("本日限定") ? current.menu : "本日限定：" + current.menu;
+    $("cCatch").textContent = current.catch;
+    document.title = current.name + "号 | ジャッチュ AR";
+    document.querySelectorAll(".chip").forEach(c =>
+      c.classList.toggle("on", c.dataset.id === current.id));
+  }
+
+  async function apply(){
+    showCard();
+    mv.setAttribute("src", glbOf(current));   // お店の電車（ラッピング入りの glb）に切り替え
+
+    // iPhone：お店の usdz（Blender で書き出した動く版）があれば使う。
+    // なければ glb から自動で変換する（その場合、ARでは電車が止まったまま）
+    const id = current.id;
+    try {
+      const r = await fetch(usdzOf(current), { method: "HEAD", cache: "no-store" });
+      if (id !== current.id) return;
+      if (r.ok) mv.setAttribute("ios-src", usdzOf(current) + "?" + VER);
+      else      mv.removeAttribute("ios-src");
+    } catch (e) {
+      mv.removeAttribute("ios-src");
+    }
+  }
+
+  // モデルが読み込めなかったとき、ファイル名を表示する
+  mv.addEventListener("error", () => {
+    $("err").hidden = false;
+    $("err").innerHTML = `モデルを読み込めませんでした：<b>mini-${current.id}.glb</b><br>
+      GitHub にこの名前のファイルがあるか（名前に (1) などが付いていないか）確認してください。`;
+  });
+  mv.addEventListener("load", () => { $("err").hidden = true; });
+
+  apply();
+</script>
+</body>
+</html>
