@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大門町 案内板 | ジャッチュ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0c; --panel:#050505; --frame:#2a2a2d;
+    --amber:#ffb020; --amber-dim:#5a3a06;
+    --green:#3dff6e; --red:#ff3b30; --white:#f4f1e8; --cyan:#4fd8ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--amber);font-family:"DotGothic16",monospace;
+       -webkit-font-smoothing:none;letter-spacing:.04em}
+  .wrap{max-width:520px;margin:0 auto;padding:12px 12px 32px}
+  header{display:flex;justify-content:space-between;align-items:baseline;padding:6px 4px 10px}
+  header h1{margin:0;font-size:20px;color:var(--white);font-weight:normal}
+  header .sub{font-size:12px;color:#888}
+  #clock{font-size:22px;color:var(--white)}
+
+  .board{background:var(--panel);border:6px solid var(--frame);border-radius:6px;margin-bottom:14px;
+         box-shadow:inset 0 0 0 1px #000, 0 2px 0 #000;position:relative;overflow:hidden}
+  /* LEDのドット感 */
+  .board::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 56%);
+    background-size:3px 3px}
+  .board h2{margin:0;padding:6px 10px;font-size:14px;font-weight:normal;color:var(--white);
+            background:#1a1a1c;border-bottom:2px solid #000;display:flex;justify-content:space-between}
+  .board h2 small{color:#999;font-size:11px}
+  .glow{text-shadow:0 0 3px currentColor}
+
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  td{padding:7px 8px;white-space:nowrap;border-bottom:1px dashed #1e1e1e}
+  tr:last-child td{border-bottom:none}
+  .num{width:3.6em;color:var(--white)}
+  .kei{display:inline-block;min-width:2.6em;text-align:center;border:1px solid currentColor;padding:0 3px;font-size:13px}
+  .k2{color:var(--cyan)} .k5{color:var(--green)}
+  .dest{color:var(--amber)}
+  .min{text-align:right;color:var(--amber);width:5.8em}
+  .min b{font-size:22px;font-weight:normal}
+  .soon{color:var(--red)!important;animation:blink 1s steps(2,start) infinite}
+  @keyframes blink{to{visibility:hidden}}
+
+  /* 接近表示 */
+  .approach{padding:8px 10px 10px;font-size:12px;color:#aaa;border-top:2px solid #000;background:#080808}
+  .line{display:flex;align-items:center;gap:0;margin:6px 0 2px}
+  .stop{flex:1;text-align:center;position:relative;color:#777;font-size:11px}
+  .stop .dot{display:block;margin:0 auto 3px;width:9px;height:9px;border-radius:50%;background:#333}
+  .stop.here{color:var(--white)} .stop.here .dot{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .seg{flex:.6;height:3px;background:#333;position:relative;top:-7px}
+  .tram{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:13px;color:var(--cyan)}
+  .stop .tram{top:-14px}
+
+  .ar-btn{display:block;width:100%;margin:10px 0 0;padding:12px;border:2px solid var(--amber);background:transparent;
+          color:var(--amber);font-family:inherit;font-size:16px;border-radius:4px;text-decoration:none;text-align:center}
+  .ar-btn:active{background:var(--amber);color:#000}
+
+  .status{width:5.2em;text-align:right}
+  .ok{color:var(--green)} .few{color:var(--amber)} .full{color:var(--red)}
+  .genre-sub{display:block;color:#999;font-size:12px;margin-top:2px}
+  .arcell{width:4.6em;text-align:right}
+  .mini-ar{display:inline-block;padding:4px 7px;border:1px solid var(--cyan);color:var(--cyan);
+           border-radius:3px;text-decoration:none;font-size:13px}
+  .mini-ar:active{background:var(--cyan);color:#000}
+  .shop{color:var(--white)}
+  .time{color:var(--white);width:3.6em}
+  .place{display:block;color:#999;font-size:12px;margin-top:2px;text-shadow:none}
+  .ev td{white-space:normal}
+
+  /* 流れる文字 */
+  .ticker{overflow:hidden;white-space:nowrap;padding:10px 0;font-size:18px}
+  .ticker span{display:inline-block;padding-left:100%;animation:scroll 28s linear infinite}
+  @keyframes scroll{to{transform:translateX(-100%)}}
+
+  .legend{font-size:11px;color:#777;padding:4px 10px 8px}
+  footer{font-size:11px;color:#666;text-align:center;margin-top:8px;line-height:1.7}
+  @media (prefers-reduced-motion:reduce){.ticker span,.soon{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>大門町 案内板</h1>
+      <div class="sub">ジャッチュ ／ 函館駅前・松風町</div>
+    </div>
+    <div id="clock" class="glow">--:--</div>
+  </header>
+
+  <!-- ① 市電の接近情報 -->
+  <section class="board">
+    <h2>市電 函館駅前 のりば <small id="upd">--:-- 更新</small></h2>
+    <table id="trams"></table>
+    <div class="approach">
+      <div>▼ 次の電車の位置（湯の川方面）</div>
+      <div class="line" id="line"></div>
+      <a class="ar-btn glow" id="waitAr" href="mini.html">📷 待ち時間にARで電車を見る</a>
+    </div>
+  </section>
+
+  <!-- ② 空席情報 -->
+  <section class="board">
+    <h2>いま入れるお店 <small>🚋AR でお店の電車が走ります</small></h2>
+    <table id="shops"></table>
+  </section>
+
+  <!-- ③ 本日の限定メニュー（流れる文字） -->
+  <section class="board">
+    <h2>本日の限定メニュー</h2>
+    <div class="ticker glow"><span id="ticker"></span></div>
+  </section>
+
+  <!-- ④ 今日のイベント -->
+  <section class="board">
+    <h2>今日のイベント</h2>
+    <table id="events" class="ev"></table>
+  </section>
+
+  <footer>
+    ※ 表示している時刻・店舗・イベントはすべてサンプルです。<br>
+    実際のサービスでは、市電の運行情報とお店の管理画面につないで自動で更新します。
+  </footer>
+</div>
+
+<script src="shops.js"></script>
+<script>
+/* =========================================================
+   ここを書き換えると表示が変わります（サンプルデータ）
+   ========================================================= */
+const TRAMS = [   // 系統・行き先・運転間隔(分)・ずらし(分)
+  { kei:"2", dest:"谷地頭 行",       every:12, offset:2 },
+  { kei:"5", dest:"函館どつく前 行", every:12, offset:8 },
+  { kei:"2", dest:"湯の川 行",       every:12, offset:5 },
+  { kei:"5", dest:"湯の川 行",       every:12, offset:11 },
+];
+// 湯の川方面の電車が来る順番（函館駅前の手前の停留場）
+const LINE_STOPS = ["十字街","魚市場通","市役所前","函館駅前"];
+const MIN_PER_STOP = 2;   // 1区間あたりの目安（分）
+
+const SHOPS = window.JATCHU_SHOPS;          // お店のデータは shops.js にあります
+const MENUS = SHOPS.map(s => `${s.name} ／ ${s.menu}`)
+                   .concat(["ジャッチュ提示で 1杯目 50円引き（例）"]);
+
+const EVENTS = [  // 時刻・内容・場所
+  { time:"17:00", title:"ARスタンプラリー 開始",   place:"大門町一帯" },
+  { time:"18:30", title:"ラッピング電車 撮影会",   place:"函館駅前 停留場" },
+  { time:"19:30", title:"路上ライブ",               place:"グリーンプラザ（例）" },
+  { time:"21:00", title:"はしご酒タイム 延長",     place:"参加店" },
+];
+/* ========================================================= */
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const ST = window.JATCHU_STATUS;
+
+function minutesUntil(now, every, offset){
+  const m = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  let next = Math.ceil((m - offset) / every) * every + offset;
+  if (next - m < 0.02) next += every;
+  return next - m;
+}
+
+function renderTrams(){
+  const now = new Date();
+  $("clock").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
+  $("upd").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes()) + " 更新";
+
+  const rows = TRAMS.map(t => ({...t, left: minutesUntil(now, t.every, t.offset)}))
+                    .sort((a,b) => a.left - b.left);
+  $("trams").innerHTML = rows.map((t,i) => {
+    const mins = Math.floor(t.left);
+    const soon = t.left < 1;
+    const txt  = soon ? "まもなく" : `あと<b>${mins}</b>分`;
+    return `<tr>
+      <td class="num">${i===0?"先発":"次発"}</td>
+      <td><span class="kei k${t.kei}">${t.kei}系統</span></td>
+      <td class="dest glow">${t.dest}</td>
+      <td class="min glow ${soon?"soon":""}">${txt}</td></tr>`;
+  }).slice(0,3).join("");
+
+  // 湯の川方面で一番近い電車の位置
+  const yu = rows.filter(t => t.dest.startsWith("湯の川"))[0];
+  const stopsAway = Math.min(LINE_STOPS.length-1, Math.floor(yu.left / MIN_PER_STOP));
+  const idx = LINE_STOPS.length-1 - stopsAway;
+  $("line").innerHTML = LINE_STOPS.map((s,i) => {
+    const here = i === LINE_STOPS.length-1;
+    const tram = i === idx ? `<span class="tram glow">🚋</span>` : "";
+    return (i ? `<div class="seg"></div>` : "") +
+      `<div class="stop ${here?"here":""}">${tram}<span class="dot"></span>${s}</div>`;
+  }).join("");
+}
+
+function renderShops(){
+  $("shops").innerHTML = SHOPS.map(s => {
+    const [label, cls] = ST[s.st];
+    return `<tr><td><span class="shop glow">${s.name}</span><span class="genre-sub">${s.genre}</span></td>
+            <td class="status glow ${cls}">${label}</td>
+            <td class="arcell"><a class="mini-ar" href="mini.html?shop=${s.id}">🚋 AR</a></td></tr>`;
+  }).join("");
+  // 待ち時間ボタン：空席のあるお店からランダムに1つ
+  const open = SHOPS.filter(s => s.st !== "full");
+  const pick = open[Math.floor(Math.random()*open.length)] || SHOPS[0];
+  $("waitAr").href = `mini.html?shop=${pick.id}`;
+  $("waitAr").textContent = `📷 待ち時間にAR：「${pick.name}号」を走らせる`;
+}
+
+function renderEvents(){
+  $("events").innerHTML = EVENTS.map(e =>
+    `<tr><td class="time">${e.time}</td><td><span class="glow">${e.title}</span><span class="place">📍 ${e.place}</span></td></tr>`
+  ).join("");
+}
+
+$("ticker").textContent = MENUS.join("　　◆　　");
+renderShops(); renderEvents(); renderTrams();
+setInterval(renderTrams, 5000);
+</script>
+</body>
+</html>
