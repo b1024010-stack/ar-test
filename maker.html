@@ -61,6 +61,7 @@
       <span class="ttl" id="ttl">じぶんの電車</span>
     </div>
     <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
+    <button class="ar-btn" id="iosAr" hidden>📷 ARで走らせる</button>
   </model-viewer>
 </div>
 
@@ -109,7 +110,6 @@
     <div class="preview"><canvas id="pv" width="943" height="200"></canvas></div>
     <p class="hint">
       できたら上の「📷 ARで走らせる」を押すと、机や床の上をじぶんの電車が走ります。<br>
-      ※ iPhone の AR では、電車は走らずに止まった状態で表示されます。
     </p>
   </div>
 </div>
@@ -162,7 +162,7 @@ $("rmPhoto").onclick = () => { S.photo = null; $("photo").value=""; $("rmPhoto")
 
 /* ---------- 描画 ---------- */
 function pattern(g, w, h, kind, col){
-  g.save(); g.fillStyle = col; g.strokeStyle = col;
+  g.save(); g.beginPath(); g.rect(0,0,w,h); g.clip(); g.fillStyle = col; g.strokeStyle = col;
   if (kind==="stripe"){ g.globalAlpha=.55; for(let x=-h; x<w; x+=70){ g.beginPath(); g.moveTo(x,h); g.lineTo(x+h,0); g.lineTo(x+h+26,0); g.lineTo(x+26,h); g.fill(); } }
   if (kind==="dots"){ g.globalAlpha=.6; for(let y=18,r=0; y<h; y+=44,r++) for(let x=(r%2?22:0); x<w; x+=44){ g.beginPath(); g.arc(x,y,9,0,7); g.fill(); } }
   if (kind==="check"){ g.globalAlpha=.35; const s=40; for(let y=0;y<h;y+=s) for(let x=0;x<w;x+=s) if(((x+y)/s)%2===0) g.fillRect(x,y,s,s); }
@@ -221,8 +221,8 @@ const base = new Image(); base.src = "wrap-base.jpg?v=1";
 function paint(){
   if (base.complete && base.naturalWidth) tg.drawImage(base,0,0,2048,2048);
   else { tg.fillStyle="#3a2a24"; tg.fillRect(0,0,2048,2048); }
-  for (const [x0,y0,x1,y1] of SIDES){ tg.save(); tg.translate(x0,y0); drawSide(tg,x1-x0,y1-y0); tg.restore(); }
-  for (const [x0,y0,x1,y1] of ENDS){ tg.save(); tg.translate(x0,y0); drawEnd(tg,x1-x0,y1-y0); tg.restore(); }
+  for (const [x0,y0,x1,y1] of SIDES){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawSide(tg,x1-x0,y1-y0); tg.restore(); }
+  for (const [x0,y0,x1,y1] of ENDS){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawEnd(tg,x1-x0,y1-y0); tg.restore(); }
   // 見本（側面）
   const pv = $("pv"), pg = pv.getContext("2d"), [x0,y0,x1,y1] = SIDES[0];
   pg.drawImage(tex, x0,y0,x1-x0,y1-y0, 0,0,pv.width,pv.height);
@@ -250,10 +250,69 @@ async function apply(){
   lastUrl = url; busy = false;
   if (again){ again = false; apply(); }
 }
-function update(){
+let update = function(){
   paint();
   clearTimeout(timer); timer = setTimeout(apply, 250);
 }
+
+/* ---------- iPhone：動く usdz をその場で作って AR で開く ---------- */
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+let template = null, iosUrl = null, iosTimer = null;
+const loadTemplate = async () => template ||
+  (template = new Uint8Array(await (await fetch("maker-template.usda?v=1")).arrayBuffer()));
+
+const CRC = (() => { const t = new Uint32Array(256);
+  for (let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for (let i=0;i<u8.length;i++) c = CRC[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function usdz(files){           // 無圧縮・64バイト境界の zip（usdz の決まり）
+  const parts=[], cd=[]; let off=0;
+  for (const [name,data] of files){
+    const nb=new TextEncoder().encode(name), hdr=30+nb.length;
+    const pad=(64-((off+hdr+4)%64))%64, crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(hdr+4+pad));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint32(14,crc,true);
+    h.setUint32(18,data.length,true); h.setUint32(22,data.length,true);
+    h.setUint16(26,nb.length,true); h.setUint16(28,4+pad,true);
+    new Uint8Array(h.buffer).set(nb,30); h.setUint16(hdr,12345,true); h.setUint16(hdr+2,pad,true);
+    const c=new DataView(new ArrayBuffer(46+nb.length));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint32(16,crc,true);
+    c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,nb.length,true);
+    c.setUint32(42,off,true); new Uint8Array(c.buffer).set(nb,46);
+    parts.push(new Uint8Array(h.buffer), data); cd.push(new Uint8Array(c.buffer));
+    off += h.byteLength + data.length;
+  }
+  const cdSize=cd.reduce((a,b)=>a+b.length,0), e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,cdSize,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...cd,new Uint8Array(e.buffer)], {type:"model/vnd.usdz+zip"});
+}
+async function buildIOS(){
+  const tpl = await loadTemplate();
+  const jpg = new Uint8Array(await (await new Promise(r => tex.toBlob(r,"image/jpeg",0.88))).arrayBuffer());
+  if (iosUrl) URL.revokeObjectURL(iosUrl);
+  iosUrl = URL.createObjectURL(usdz([["model.usda",tpl],["textures/wrap.jpg",jpg]]));
+  return iosUrl;
+}
+if (isIOS){
+  mv.removeAttribute("ar");            // model-viewer の AR ボタンの代わりに自前のボタンを使う
+  const btn = $("iosAr"); btn.hidden = false;
+  btn.onclick = async () => {
+    btn.textContent = "準備中…";
+    try {
+      clearTimeout(iosTimer);
+      const url = await buildIOS();
+      const a = document.createElement("a");
+      a.rel = "ar"; a.download = "jatchu-train.usdz"; a.href = url;
+      a.appendChild(document.createElement("img"));
+      a.click();
+    } catch(e){ console.error(e); alert("ARの準備に失敗しました"); }
+    btn.textContent = "📷 ARで走らせる";
+  };
+  loadTemplate();
+}
+const _update = update;
+update = function(){ _update(); if (isIOS){ clearTimeout(iosTimer); iosTimer = setTimeout(buildIOS, 1200); } };
 
 base.onload = update;
 document.fonts && document.fonts.ready.then(update);
