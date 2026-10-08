@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>本物の線路で走らせる（試作） | ジャッチュ</title>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    } }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: #fff;
+      font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+    #stage { position: absolute; overflow: hidden; }
+    #stage video, #stage img, #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #gl, #ov { z-index: 2; }
+    #start { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; padding: 24px; background: linear-gradient(#1b2a4a, #0b1020); overflow-y: auto; }
+    #start h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: .06em; }
+    #start .sub { margin: 0 0 16px; opacity: .8; font-size: 13px; }
+    .train { display: inline-block; margin: 0 0 14px; padding: 6px 14px; border-radius: 8px; background: rgba(255,255,255,.12); }
+    .warn { max-width: 420px; text-align: left; background: #3a1010; border: 1px solid #ff6b5a; border-radius: 10px;
+      padding: 12px 14px; font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
+    .warn b { color: #ffb3a8; }
+    .btn { display: block; width: 260px; margin: 6px auto; font-size: 17px; padding: 13px 20px; border: 0; border-radius: 999px;
+      background: #e8c15a; color: #1b2a4a; font-weight: bold; text-align: center; cursor: pointer; }
+    .btn.sec { background: transparent; color: #e8c15a; border: 2px solid #e8c15a; }
+    .btn input { display: none; }
+    #msg { font-size: 12px; opacity: .7; margin-top: 10px; min-height: 1em; }
+    #status { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      padding: 8px 16px; border-radius: 999px; background: rgba(0,0,0,.6); font-size: 14px; white-space: nowrap; z-index: 5; }
+    .tb { position: fixed; top: calc(8px + env(safe-area-inset-top)); z-index: 6; font-size: 12px; padding: 6px 10px;
+      border: 0; border-radius: 6px; background: rgba(0,0,0,.5); color: #ffb020; text-decoration: none; }
+    #back { left: 8px; } #dbgBtn { right: 8px; color: #fff; }
+    #dbg { position: fixed; top: calc(40px + env(safe-area-inset-top)); right: 8px; z-index: 6; width: 210px;
+      background: rgba(0,0,0,.65); padding: 8px; border-radius: 8px; font-size: 11px; line-height: 1.6; }
+    #dbg label { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+    #dbg input[type=range] { width: 110px; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <video id="video" playsinline muted autoplay loop></video>
+    <canvas id="gl"></canvas>
+    <canvas id="ov"></canvas>
+  </div>
+
+  <a class="tb" id="back" href="board.html">← もどる</a>
+  <button class="tb" id="dbgBtn" hidden>DEBUG</button>
+  <div id="dbg" hidden>
+    <label>焦点 <input id="focal" type="range" min="50" max="130" value="80"><span id="focalV">0.80</span></label>
+    <label>線の感度 <input id="sens" type="range" min="10" max="80" value="35"><span id="sensV">35</span></label>
+    <div id="info"></div>
+  </div>
+  <div id="status" hidden></div>
+
+  <div id="start">
+    <h1>本物の線路で走らせる</h1>
+    <p class="sub">試作版 ・ 函館市電の線路をカメラに写すと、電車が走ってきます</p>
+    <div class="train" id="trainName">🚋 花もめん号</div>
+    <div class="warn">
+      <b>⚠ 安全のために</b><br>
+      ・<b>線路や車道には絶対に立ち入らず</b>、歩道や安全地帯から使ってください<br>
+      ・本物の電車や車が近づいたら、すぐに画面から目を離してください<br>
+      ・歩きながら使わないでください
+    </div>
+    <button class="btn" id="camBtn" disabled>読み込み中…</button>
+    <label class="btn sec">🎞 撮った動画で試す<input type="file" id="fileIn" accept="video/*,image/*"></label>
+    <div id="msg"></div>
+  </div>
+
+<script src="shops.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* =========================================================
+   設定
+   ========================================================= */
+const RAIL_SPACING = 1.372 + 0.065;  // レールの中心どうしの間隔 [m]（函館市電の軌間 1372mm ＋ レール頭の幅）
+const PROC_W = 320;                  // 画像処理の横幅 [px]
+const STOP_AT = 14;                  // 電車が止まる位置（カメラの足元から線路ぞいに何m先か）
+const APPROACH_FROM = 90;            // 電車が現れる位置 [m]
+const H_MIN = 0.6, H_MAX = 2.6;      // ありえるカメラの高さ [m]（これ以外のレールの組は捨てる）
+
+const params = new URLSearchParams(location.search);
+const shopId = params.get('shop') || 'hanamomen';
+const $ = (id) => document.getElementById(id);
+let debug = params.has('debug');
+
+/* ---------- 電車の名前・もどる ---------- */
+{
+  const s = (window.JATCHU_SHOPS || []).find((x) => x.id === shopId);
+  $('trainName').textContent = '🚋 ' + (s ? s.name + '号' : '花もめん号');
+  $('back').href = 'mini.html?shop=' + encodeURIComponent(shopId);
+}
+
+/* ---------- 端末に保存する設定 ---------- */
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } },
+                set(k,v){ try { localStorage.setItem(k,v); } catch {} } };
+let focalRatio = +(params.get('f') || store.get('railFocal') || 0.8);
+let sens = +(store.get('railSens') || 35);
+$('focal').value = Math.round(focalRatio * 100); $('focalV').textContent = focalRatio.toFixed(2);
+$('sens').value = sens; $('sensV').textContent = sens;
+$('focal').oninput = () => { focalRatio = $('focal').value / 100; $('focalV').textContent = focalRatio.toFixed(2); store.set('railFocal', focalRatio); updateCamera(); };
+$('sens').oninput = () => { sens = +$('sens').value; $('sensV').textContent = sens; store.set('railSens', sens); };
+$('dbgBtn').onclick = () => { debug = !debug; $('dbg').hidden = !debug; if (!debug) octx.clearRect(0,0,ov.width,ov.height); };
+
+/* =========================================================
+   Three.js
+   ========================================================= */
+const video = $('video'), glCanvas = $('gl'), ov = $('ov'), octx = ov.getContext('2d'), stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, alpha: true, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 1.5));
+
+// 線路座標: 原点=足元の線路の中心, X=線路の奥向き, Y=上, Z=横
+const anchor = new THREE.Group(); anchor.matrixAutoUpdate = false; anchor.visible = false; scene.add(anchor);
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(-20, 40, 15); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 120 });
+const train = new THREE.Group(); anchor.add(train);
+train.add(sun); sun.target = train;
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.ShadowMaterial({ opacity: 0.35 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true; train.add(ground);
+
+let trainReady = false;
+new GLTFLoader().load(`tram-${shopId}.glb?v=1`, onModel, undefined,
+  () => new GLTFLoader().load('tram-hanamomen.glb?v=1', onModel));
+function onModel(gltf) {
+  const m = gltf.scene;
+  m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  train.add(m);                     // モデルは実物大 [m]・X が車体の長さ・Y が上
+  trainReady = true;
+  if (sourceReady) enableStart();
+}
+
+/* =========================================================
+   映像・レイアウト
+   ========================================================= */
+let srcW = 0, srcH = 0, source = null, sourceReady = true;
+const proc = document.createElement('canvas'), pctx = proc.getContext('2d', { willReadFrequently: true });
+let pw = 0, ph = 0;
+function focalPx() { return focalRatio * Math.max(srcW, srcH); }
+function updateCamera() {
+  if (!srcW) return;
+  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(srcH / 2 / focalPx()));
+  camera.aspect = srcW / srcH; camera.updateProjectionMatrix();
+}
+function layout() {
+  if (!srcW) return;
+  const W = innerWidth, H = innerHeight, sc = Math.max(W / srcW, H / srcH);
+  const w = srcW * sc, h = srcH * sc;
+  Object.assign(stage.style, { width: w + 'px', height: h + 'px', left: (W - w) / 2 + 'px', top: (H - h) / 2 + 'px' });
+  renderer.setSize(w, h, false); ov.width = w; ov.height = h; updateCamera();
+}
+addEventListener('resize', layout);
+
+/* =========================================================
+   重力センサー（スマホの傾き）→ カメラから見た「上」
+   ========================================================= */
+let devUp = null, useSensor = false;
+function onOrient(e) {
+  if (e.beta == null || e.gamma == null) return;
+  const b = THREE.MathUtils.degToRad(e.beta), g = THREE.MathUtils.degToRad(e.gamma);
+  const u = new THREE.Vector3(-Math.cos(b) * Math.sin(g), Math.sin(b), Math.cos(b) * Math.cos(g));
+  devUp = devUp ? devUp.lerp(u, 0.3).normalize() : u;
+}
+function enableSensors() {
+  const DOE = window.DeviceOrientationEvent; if (!DOE) return;
+  const listen = () => addEventListener('deviceorientation', onOrient);
+  if (typeof DOE.requestPermission === 'function') DOE.requestPermission().then((r) => r === 'granted' && listen()).catch(() => {});
+  else listen();
+}
+// カメラ座標（x右, y下, z奥）での上向き。センサーが無いとき（動画）は null
+function upFromSensor() {
+  if (!useSensor || !devUp) return null;
+  const a = THREE.MathUtils.degToRad(screen.orientation?.angle ?? window.orientation ?? 0);
+  const sx = devUp.x * Math.cos(a) - devUp.y * Math.sin(a), sy = devUp.x * Math.sin(a) + devUp.y * Math.cos(a);
+  return new THREE.Vector3(sx, -sy, -devUp.z).normalize();
+}
+
+/* =========================================================
+   レール検出（エッジ → ハフ変換で直線 → 消失点 → レールの組）
+   ========================================================= */
+let gray, mag, ang, acc;
+const NT = 180;
+const COS = new Float32Array(NT), SIN = new Float32Array(NT);
+for (let t = 0; t < NT; t++) { COS[t] = Math.cos(t * Math.PI / NT); SIN[t] = Math.sin(t * Math.PI / NT); }
+
+function detectLines(img) {
+  const w = pw, h = ph, n = w * h;
+  if (!gray || gray.length !== n) { gray = new Float32Array(n); mag = new Float32Array(n); ang = new Float32Array(n); }
+  const d = img.data;
+  for (let i = 0, j = 0; i < n; i++, j += 4) gray[i] = d[j] * 0.3 + d[j + 1] * 0.59 + d[j + 2] * 0.11;
+  // ソーベル
+  const y0 = Math.floor(h * 0.25);              // 上の方（空・建物）は使わない
+  let cnt = 0;
+  mag.fill(0);
+  for (let y = Math.max(1, y0); y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    const gx = gray[i - w + 1] + 2 * gray[i + 1] + gray[i + w + 1] - gray[i - w - 1] - 2 * gray[i - 1] - gray[i + w - 1];
+    const gy = gray[i + w - 1] + 2 * gray[i + w] + gray[i + w + 1] - gray[i - w - 1] - 2 * gray[i - w] - gray[i - w + 1];
+    const m = Math.hypot(gx, gy);
+    if (m > sens * 4) { mag[i] = m; ang[i] = Math.atan2(gy, gx); cnt++; }
+  }
+  // ハフ変換（勾配の向きに合う角度だけ投票）。ρ は画像中心から
+  const R = Math.ceil(Math.hypot(w, h) / 2), NR = 2 * R + 1;
+  if (!acc || acc.length !== NT * NR) acc = new Float32Array(NT * NR); else acc.fill(0);
+  const cx = w / 2, cy = h / 2;
+  for (let y = y0; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x; if (!mag[i]) continue;
+    let t0 = Math.round(((ang[i] % Math.PI) + Math.PI) % Math.PI / Math.PI * NT);
+    for (let dt = -6; dt <= 6; dt++) {
+      const t = (t0 + dt + NT) % NT;
+      // ほぼ水平な線（θ≒90°）はレールではないので除外
+      if (t > 72 && t < 108) continue;
+      const r = Math.round((x - cx) * COS[t] + (y - cy) * SIN[t]) + R;
+      acc[t * NR + r] += 1;
+    }
+  }
+  // 山を拾う（近い山はまとめる）
+  const lines = [];
+  const minVotes = Math.max(18, h * 0.12);
+  for (let k = 0; k < 14; k++) {
+    let best = 0, bi = -1;
+    for (let i = 0; i < acc.length; i++) if (acc[i] > best) { best = acc[i]; bi = i; }
+    if (best < minVotes) break;
+    const t = Math.floor(bi / NR), r = bi % NR - R;
+    lines.push({ t: t * Math.PI / NT, r, v: best });
+    for (let tt = Math.max(0, t - 5); tt <= Math.min(NT - 1, t + 5); tt++)
+      for (let rr = Math.max(0, r + R - 6); rr <= Math.min(NR - 1, r + R + 6); rr++) acc[tt * NR + rr] = 0;
+  }
+  return { lines, edges: cnt };
+}
+// 直線 x cosθ + y sinθ = ρ（中心原点）→ 元映像の px での 2 点・交点
+const toImg = (x, y) => [(x + pw / 2) * srcW / pw, (y + ph / 2) * srcH / ph];
+function xAtY(L, y) { return (L.r - y * Math.sin(L.t)) / Math.cos(L.t); }       // 中心原点の y で
+function intersect(a, b) {
+  const det = Math.cos(a.t) * Math.sin(b.t) - Math.sin(a.t) * Math.cos(b.t);
+  if (Math.abs(det) < 1e-6) return null;
+  return [(a.r * Math.sin(b.t) - b.r * Math.sin(a.t)) / det, (Math.cos(a.t) * b.r - Math.cos(b.t) * a.r) / det];
+}
+
+// レールらしさ：線にそって横方向の明るさを見て、「光るレール頭」と「暗い溝」が
+// すぐ隣どうしにある所がどれだけ続くか（白線は暗い溝がない・ノイズは続かない）
+function railness(L) {
+  const nx = Math.cos(L.t), ny = Math.sin(L.t);
+  let hit = 0, tot = 0;
+  for (let yy = ph * 0.05; yy < ph / 2 - 2; yy += 3) {          // 画面の下半分（中心原点）
+    const x0 = xAtY(L, yy); if (!isFinite(x0)) continue;
+    const at = (k) => {
+      const X = Math.round(x0 + nx * k + pw / 2), Y = Math.round(yy + ny * k + ph / 2);
+      return (X < 0 || Y < 0 || X >= pw || Y >= ph) ? NaN : gray[Y * pw + X];
+    };
+    // 線の両側すこし離れた所の明るさ（路面）。左右で大きく違えば白線や縁石のふち
+    const side = (a, b) => { const v = []; for (let k = a; k <= b; k++) v.push(at(k)); v.sort((p, q) => p - q); return v[v.length >> 1]; };
+    const bl = side(-13, -8), br = side(8, 13);
+    if (!isFinite(bl) || !isFinite(br)) continue;
+    tot++;
+    if (Math.abs(bl - br) > 20) continue;
+    const bg = (bl + br) / 2;
+    let mx = -1e9, mn = 1e9;
+    for (let k = -4; k <= 4; k++) { const v = at(k); if (v > mx) mx = v; if (v < mn) mn = v; }
+    if (mx - bg > 22 && bg - mn > 22) hit++;                     // 明るいレール頭と暗い溝が両方ある
+  }
+  return tot ? hit / tot : 0;
+}
+
+/* ---------- 消失点とレールの組から、地面と線路の向き・カメラの高さを求める ---------- */
+let prev = null;       // 前フレームの結果（なめらかにするため）
+let pick = null;       // タップで選んだレール（測る高さでの左右の x）
+let lastLines = [], taps = [];
+function solve(lines) {
+  if (lines.length < 2) return null;
+  for (const L of lines) L.rail ??= railness(L);
+  const f = focalPx() * pw / srcW;               // 処理画像での焦点距離
+  const yb = ph * 0.42;                          // 測る高さ（中心から下へ、画面の下の方）
+  const sensorUp = upFromSensor();
+  let best = null;
+  for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length; j++) {
+    const A = lines[i], B = lines[j];
+    const V = intersect(A, B); if (!V) continue;
+    if (V[1] > yb - 10) continue;                // 消失点は測る高さより上
+    if (Math.abs(V[0]) > pw * 2.5) continue;
+    const xa = xAtY(A, yb), xb = xAtY(B, yb);
+    if (!isFinite(xa) || !isFinite(xb) || Math.abs(xa - xb) < 6) continue;
+    // ほかの線もこの消失点を通るか（道路の線・縁石も同じ点に集まる）
+    let support = 0;
+    for (const L of lines) {
+      const dd = Math.abs(V[0] * Math.cos(L.t) + V[1] * Math.sin(L.t) - L.r);
+      if (dd < pw * 0.02) support += L.v;
+    }
+    // 線路の向き d（カメラ座標）
+    const d = new THREE.Vector3(V[0] / f, V[1] / f, 1).normalize();
+    // 上向き u：センサーがあればそれ、なければ「画面の横軸は地面と平行」と仮定
+    let u;
+    if (sensorUp) u = sensorUp.clone().addScaledVector(d, -sensorUp.dot(d)).normalize();
+    else {
+      const lat0 = new THREE.Vector3(1, 0, 0).addScaledVector(d, -d.x).normalize();
+      u = new THREE.Vector3().crossVectors(lat0, d).normalize();
+      if (u.y > 0) u.negate();                   // y下向きの座標なので、上は y<0
+    }
+    const lat = new THREE.Vector3().crossVectors(d, u).normalize();
+    const ray = (x, y) => new THREE.Vector3(x / f, y / f, 1);
+    const q = (r) => { const k = u.dot(r); return k < -1e-4 ? r.clone().multiplyScalar(-1 / k) : null; };
+    const qa = q(ray(xa, yb)), qb = q(ray(xb, yb)); if (!qa || !qb) continue;
+    const sep = Math.abs(qa.clone().sub(qb).dot(lat));
+    const hgt = RAIL_SPACING / sep;              // レール間隔 1.437m になるカメラの高さ
+    if (hgt < H_MIN || hgt > H_MAX) continue;
+    if (!pick && (A.rail < 0.25 || B.rail < 0.25)) continue;   // レールらしくない線（白線・ノイズ）は使わない
+    let score = (A.v + B.v) * 0.5 + support * 0.3 + (A.rail + B.rail) * 150;
+    score -= Math.abs(hgt - 1.4) * 60;           // 手で持った高さらしいものを優先
+    const lo = Math.min(xa, xb), hi = Math.max(xa, xb);
+    if (pick) {                                  // タップで選んだレールに近い組を最優先
+      const miss = Math.abs(lo - pick.lo) + Math.abs(hi - pick.hi);
+      if (miss > pw * 0.15) continue;
+      score -= miss * 20;
+    } else if (prev) {                           // 前フレームと近いものを優先
+      score -= Math.hypot(V[0] - prev.V[0], V[1] - prev.V[1]) * 0.5;
+      score -= Math.abs((xa + xb) / 2 - prev.xm) * 1.0;
+    }
+    if (!best || score > best.score) best = { score, A, B, V, d, u, lat, hgt, qa, qb, xa, xb, xm: (xa + xb) / 2, yb };
+  }
+  return best;
+}
+
+/* ---------- 求めた姿勢を、なめらかにして3Dに反映 ---------- */
+const S = { d: null, u: null, c: null };
+let lastFound = 0;
+function applyPose(b) {
+  const c = b.qa.clone().add(b.qb).multiplyScalar(b.hgt / 2);   // 足元の線路の中心（カメラ座標）
+  const k = S.d ? 0.25 : 1;
+  S.d = S.d ? S.d.lerp(b.d, k).normalize() : b.d.clone();
+  S.u = S.u ? S.u.lerp(b.u, k).normalize() : b.u.clone();
+  S.c = S.c ? S.c.lerp(c, k) : c;
+  // カメラ座標（x右,y下,z奥）→ three（x右,y上,z手前）
+  const T = (v) => new THREE.Vector3(v.x, -v.y, -v.z);
+  const X = T(S.d), Y = T(S.u), Z = new THREE.Vector3().crossVectors(X, Y).normalize();
+  const Yo = new THREE.Vector3().crossVectors(Z, X).normalize();
+  const m = new THREE.Matrix4().makeBasis(X, Yo, Z); m.setPosition(T(S.c));
+  anchor.matrix.copy(m); anchor.matrixWorldNeedsUpdate = true; anchor.visible = true;
+}
+
+/* ---------- 電車の動き：奥から来て止まり、また奥へ戻る（くり返し） ---------- */
+let t0 = performance.now();
+function trainPos(now) {
+  const t = ((now - t0) / 1000) % 26;
+  const ease = (u) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, u)));
+  if (t < 10) return APPROACH_FROM + (STOP_AT - APPROACH_FROM) * ease(t / 10);   // 近づいて止まる
+  if (t < 16) return STOP_AT;                                                     // 停車
+  return STOP_AT + (APPROACH_FROM - STOP_AT) * ease((t - 16) / 10);               // 奥へ戻る
+}
+
+/* =========================================================
+   ループ
+   ========================================================= */
+let fps = 0, fc = 0, ft = performance.now(), procMs = 0, lastRes = null;
+function loop(now) {
+  requestAnimationFrame(loop);
+  if (!srcW) return;
+  const a = performance.now();
+  pctx.drawImage(source, 0, 0, pw, ph);
+  const img = pctx.getImageData(0, 0, pw, ph);
+  const { lines, edges } = detectLines(img);
+  const b = solve(lines);
+  procMs = procMs * 0.9 + (performance.now() - a) * 0.1;
+  lastLines = lines;
+  if (b) {
+    prev = b; lastFound = now; applyPose(b);
+    if (pick) { pick.lo += (Math.min(b.xa, b.xb) - pick.lo) * 0.5; pick.hi += (Math.max(b.xa, b.xb) - pick.hi) * 0.5; }   // 選んだレールを追いかける
+  }
+  else if (now - lastFound > 1200) { anchor.visible = false; prev = null; S.d = S.u = S.c = null; if (now - lastFound > 4000) pick = null; }
+  if (trainReady) train.position.set(trainPos(now), 0, 0);
+  renderer.render(scene, camera);
+
+  const st = $('status');
+  st.hidden = false;
+  st.textContent = taps.length === 1 ? 'もう1本のレールをタップしてください'
+    : anchor.visible ? '🚋 走行中 ・ ちがう線路ならレールを2本タップ' : '線路をまっすぐ写してください';
+
+  if (++fc >= 15) { fps = fc * 1000 / (now - ft); fc = 0; ft = now; }
+  if (debug) drawDebug(lines, b, edges);
+  lastRes = { lines: lines.length, found: !!b, hgt: b && b.hgt, V: b && b.V, xa: b && b.xa, xb: b && b.xb };
+  window.__rail = lastRes;
+}
+function drawDebug(lines, b, edges) {
+  const W = ov.width, H = ov.height; octx.clearRect(0, 0, W, H);
+  const sx = W / pw, sy = H / ph;
+  const P = (x, y) => [(x + pw / 2) * sx, (y + ph / 2) * sy];
+  octx.lineWidth = 1.5;
+  for (const L of lines) {
+    const [x1, y1] = P(xAtY(L, -ph / 2), -ph / 2), [x2, y2] = P(xAtY(L, ph / 2), ph / 2);
+    octx.strokeStyle = 'rgba(255,255,0,.5)'; octx.beginPath(); octx.moveTo(x1, y1); octx.lineTo(x2, y2); octx.stroke();
+  }
+  if (b) {
+    octx.lineWidth = 4; octx.strokeStyle = '#3dff6e';
+    for (const L of [b.A, b.B]) {
+      const [x1, y1] = P(...b.V), [x2, y2] = P(xAtY(L, ph / 2), ph / 2);
+      octx.beginPath(); octx.moveTo(x1, y1); octx.lineTo(x2, y2); octx.stroke();
+    }
+    const [vx, vy] = P(...b.V); octx.fillStyle = '#ff3b30'; octx.beginPath(); octx.arc(vx, vy, 6, 0, 7); octx.fill();
+  }
+  $('info').innerHTML = `直線 ${lines.length} 本 / エッジ ${edges}<br>` +
+    (b ? `カメラの高さ ${b.hgt.toFixed(2)} m<br>` : 'レールの組 なし<br>') +
+    `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし'}`;
+}
+
+/* ---------- レールをタップして選ぶ（自動でちがう線を選んだときの手直し） ---------- */
+stage.addEventListener('pointerup', (e) => {
+  if (!srcW || !lastLines.length) return;
+  const rc = ov.getBoundingClientRect();
+  const x = (e.clientX - rc.left) / rc.width * pw - pw / 2, y = (e.clientY - rc.top) / rc.height * ph - ph / 2;
+  let best = null, bd = Infinity;
+  for (const L of lastLines) { const dd = Math.abs(x * Math.cos(L.t) + y * Math.sin(L.t) - L.r); if (dd < bd) { bd = dd; best = L; } }
+  if (!best || bd > pw * 0.06) return;
+  taps.push(best);
+  if (taps.length === 2) {
+    const yb = ph * 0.42, a = xAtY(taps[0], yb), b = xAtY(taps[1], yb);
+    pick = { lo: Math.min(a, b), hi: Math.max(a, b) }; taps = []; prev = null;
+  }
+});
+
+/* =========================================================
+   開始
+   ========================================================= */
+function setSource(el, w, h) {
+  source = el; srcW = w; srcH = h;
+  pw = PROC_W; ph = Math.round(PROC_W * srcH / srcW); proc.width = pw; proc.height = ph;
+  layout(); $('start').hidden = true; $('dbgBtn').hidden = false; $('dbg').hidden = !debug;
+  t0 = performance.now(); requestAnimationFrame(loop);
+}
+async function startCamera() {
+  enableSensors(); useSensor = true;
+  $('camBtn').disabled = true; $('camBtn').textContent = '起動中…';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+    video.srcObject = stream; await video.play();
+    setSource(video, video.videoWidth, video.videoHeight);
+  } catch (e) {
+    $('msg').textContent = 'カメラを起動できませんでした: ' + e.message;
+    $('camBtn').disabled = false; $('camBtn').textContent = 'もう一度試す';
+  }
+}
+function startFile(file) {
+  useSensor = false;
+  const url = URL.createObjectURL(file);
+  if (file.type.startsWith('image/')) {
+    const im = new Image(); im.onload = () => { stage.appendChild(im); im.style.zIndex = 0; setSource(im, im.naturalWidth, im.naturalHeight); }; im.src = url;
+    video.hidden = true; return;
+  }
+  video.src = url; video.loop = true;
+  video.onloadedmetadata = async () => { await video.play().catch(() => {}); setSource(video, video.videoWidth, video.videoHeight); };
+}
+$('fileIn').onchange = (e) => { const f = e.target.files[0]; if (f) startFile(f); };
+
+function enableStart() {
+  $('camBtn').disabled = false; $('camBtn').textContent = '📷 カメラで始める';
+  $('camBtn').onclick = startCamera;
+}
+// テスト用： ?img=画像のURL でその画像を使う
+if (params.get('img')) {
+  const im = new Image(); im.crossOrigin = 'anonymous';
+  im.onload = () => { stage.appendChild(im); video.hidden = true; useSensor = false; debug = true; setSource(im, im.naturalWidth, im.naturalHeight); };
+  im.src = params.get('img');
+}
+</script>
+</body>
+</html>
