@@ -275,11 +275,12 @@ const linePt = (L, s) => [L.r * Math.cos(L.t) - s * Math.sin(L.t), L.r * Math.si
 const xAtY = (L, y) => (L.r - y * Math.sin(L.t)) / Math.cos(L.t);
 const yAtX = (L, x) => (L.r - x * Math.cos(L.t)) / Math.sin(L.t);
 
-// レールらしさ：線にそって、「光るレール頭」と「暗い溝」がすぐ隣どうしにある所がどれだけ続くか
-// （白線は暗い溝がない・縁石は片側だけ明るい・ノイズは続かない）
+// レールらしさ：線にそって、細い「暗い溝」が続いているか（函館の路面のレールは、溝が黒い線に見える）
+// 白線（明るいだけ）・段差や縁石（片側だけ明るい）・路面のざらつき（続かない）は低くなる
 function railness(L) {
   const nx = Math.cos(L.t), ny = Math.sin(L.t), Rm = Math.hypot(pw, ph) / 2;
   let hit = 0, tot = 0;
+  const med = (v) => { const u = [...v].sort((p, q) => p - q); return u[u.length >> 1]; };
   for (let s = -Rm; s <= Rm; s += 3) {
     const [x0, y0] = linePt(L, s);
     if (x0 < -pw / 2 + 2 || x0 > pw / 2 - 2 || y0 < -ph * 0.42 || y0 > ph / 2 - 2) continue;
@@ -287,19 +288,30 @@ function railness(L) {
       const X = Math.round(x0 + nx * k + pw / 2), Y = Math.round(y0 + ny * k + ph / 2);
       return (X < 0 || Y < 0 || X >= pw || Y >= ph) ? NaN : gray[Y * pw + X];
     };
-    const side = (a, b) => { const v = []; for (let k = a; k <= b; k++) v.push(at(k)); v.sort((p, q) => p - q); return v[v.length >> 1]; };
-    const bl = side(-12, -7), br = side(7, 12);
-    if (!isFinite(bl) || !isFinite(br)) continue;
+    const L1 = [], R1 = [];
+    for (let k = 10; k <= 15; k++) { L1.push(at(-k)); R1.push(at(k)); }
+    if (L1.some(isNaN) || R1.some(isNaN)) continue;
+    const bl = med(L1), br = med(R1);
     tot++;
-    if (Math.abs(bl - br) > 20) continue;
+    if (Math.abs(bl - br) > 18) continue;                       // 片側だけ明るい（段差・縁石・白線のふち）
     const bg = (bl + br) / 2;
-    let mx = -1e9, mn = 1e9;
-    for (let k = -4; k <= 4; k++) { const v = at(k); if (v > mx) mx = v; if (v < mn) mn = v; }
-    if (mx - bg > 12 && bg - mn > 12) hit++;
+    const mad = med([...L1, ...R1].map((v) => Math.abs(v - bg)));
+    const thr = Math.max(10, 3 * mad);                          // 路面のざらつきより濃いこと
+    let dark = 0, bright = 0, mn = 1e9;
+    for (let k = -4; k <= 4; k++) { const v = at(k); if (v < bg - thr) dark++; if (v > bg + 40) bright++; if (v < mn) mn = v; }
+    if (bright >= 4) continue;                                  // 太く明るい＝白線などのペンキ
+    if (dark >= 1 && dark <= 4 && bg - mn > thr) hit++;        // 細くて暗い溝
   }
   return tot >= 4 ? hit / tot : 0;
 }
 
+// 線が点 V（同次座標）に向かっているか：角度のずれ（ラジアン）
+function offVP(L, V) {
+  const px = L.r * Math.cos(L.t), py = L.r * Math.sin(L.t);
+  const dx = V[0] - px * V[2], dy = V[1] - py * V[2];
+  const n = Math.hypot(dx, dy); if (n < 1e-9) return 0;
+  return Math.abs(Math.asin(Math.max(-1, Math.min(1, (dx * Math.cos(L.t) + dy * Math.sin(L.t)) / n))));
+}
 /* ---------- レールの組から、地面と線路の向き・カメラの高さを求める ---------- */
 let prev = null;       // 前フレームの結果（なめらかにするため）
 let pick = null;       // タップで選んだレール { col, lo, hi }
@@ -310,6 +322,7 @@ const measure = (L, col) => col ? yAtX(L, 0) : xAtY(L, YB());
 function solve(lines) {
   if (lines.length < 2) return null;
   for (const L of lines) L.rail ??= railness(L);
+
   const f = focalPx() * pw / srcW;               // 処理画像での焦点距離
   const sensorUp = upFromSensor();
   let best = null;
@@ -351,9 +364,14 @@ function solve(lines) {
     const sep = Math.abs(qa.clone().sub(qb).dot(lat));
     const hgt = RAIL_SPACING / sep;              // レール間隔 1.437m になるカメラの高さ
     if (hgt < H_MIN || hgt > H_MAX) continue;
-    if (!pick && (A.rail < 0.25 || B.rail < 0.25)) continue;   // レールらしくない線（白線・ノイズ）は使わない
-    let score = (A.v + B.v) * 0.5 + (A.rail + B.rail) * 150;
-    score -= Math.abs(hgt - 1.4) * 60;           // 手で持った高さらしいものを優先
+    // レールらしくない線（白線・ノイズ）は使わない。片方が少し弱くても、2本合わせて十分ならよい
+    if (!pick && (Math.min(A.rail, B.rail) < 0.12 || A.rail + B.rail < 0.5)) continue;
+    // ほかの線（縁石・白線・もう1組のレール）も同じ向きにそろっているか。斜めのひび割れどうしの組を外す
+    let support = 0;
+    for (const L of lines) if (L !== A && L !== B && offVP(L, V) < 0.012) support += L.v;
+    if (side && support < 60) continue;
+    let score = (A.v + B.v) * 0.5 + (A.rail + B.rail) * 150 + Math.min(support, 600) * 0.2;
+    score -= Math.abs(hgt - 1.4) * (side ? 150 : 60);   // 手で持った高さらしいものを優先（横からは高さの誤差が出やすい）
     const lo = Math.min(ma, mb), hi = Math.max(ma, mb);
     if (pick) {                                  // タップで選んだレールに近い組を最優先
       if (pick.col !== col) continue;
@@ -372,7 +390,10 @@ function solve(lines) {
 const S = { d: null, u: null, c: null, side: null };
 let lastFound = 0;
 function applyPose(b) {
-  const c = b.qa.clone().add(b.qb).multiplyScalar(b.hgt / 2);   // 測った所の線路の中心（カメラ座標）
+  // 横から見ると、レールの間隔から求めた高さは傾きのわずかな誤差で大きく変わるので、
+  // 手で持つ高さとしてありえる範囲（1.1〜1.7m）におさえて使う
+  const hUse = b.side ? Math.min(1.7, Math.max(1.1, b.hgt)) : b.hgt;
+  const c = b.qa.clone().add(b.qb).multiplyScalar(hUse / 2);    // 測った所の線路の中心（カメラ座標）
   if (S.d && S.d.dot(b.d) < 0) b.d.negate();   // 線路の向きの「前後」を前フレームとそろえる（横から見ると入れかわりやすい）
   if (S.side !== b.side || (S.d && S.d.dot(b.d) < 0.9)) { S.d = null; t0 = performance.now(); }  // 見方が変わったら最初から
   const k = S.d ? 0.25 : 1;
