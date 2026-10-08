@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- viewport-fit=cover：iPhone のノッチやホームバーの位置を env(safe-area-inset-*) で取れるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>ジャッチュ お店の電車 AR</title>
 
   <!-- model-viewer を読み込む -->
@@ -11,55 +12,128 @@
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 
   <style>
-    body { margin: 0; font-family: sans-serif; }
-    model-viewer { width: 100vw; height: 100vh; background: #e9eef3; }
-
-    .top {
-      position: absolute; top: 12px; left: 12px; right: 12px;
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: -apple-system, "Hiragino Sans", sans-serif; background: #e9eef3;
+      /* 画面の高さ。100dvh = Safari のアドレスバー・ツールバーを除いた「見えている高さ」 */
+      height: 100vh; height: 100dvh;
+      display: flex; flex-direction: column; overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
+
+    /* ===== 上：もどる + お店の切り替え ===== */
+    header {
+      flex: none; background: #0b0b0c; color: #ffb020;
+      padding: calc(8px + env(safe-area-inset-top)) 0 8px;
+      font-family: "DotGothic16", monospace;
+    }
+    .bar { display: flex; align-items: center; gap: 10px; padding: 0 12px; }
     .back {
-      font-family: "DotGothic16", monospace; font-size: 14px; text-decoration: none;
-      color: #ffb020; background: #0b0b0c; padding: 7px 12px; border-radius: 4px;
+      flex: none; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px;
+      color: #ffb020; text-decoration: none; font-size: 15px;
+      border: 1px solid #3a3a3d; border-radius: 8px;
     }
-    .scale { font-size: 12px; color: #555; }
+    .title { flex: 1; min-width: 0; font-size: 15px; color: #f4f1e8;
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* お店の切り替え */
     .chips {
-      position: absolute; top: 56px; left: 0; right: 0; padding: 0 12px;
-      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+      padding: 10px 12px 2px; scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
     }
     .chips::-webkit-scrollbar { display: none; }
     .chip {
-      flex: none; padding: 6px 12px; border-radius: 16px; border: 1px solid #b9c2cc;
-      background: #fff; color: #1c2a44; font-size: 13px; cursor: pointer;
+      flex: none; min-height: 40px; padding: 0 16px; border-radius: 20px;
+      border: 1px solid #3a3a3d; background: #1b1b1e; color: #cfcfcf;
+      font: 15px "DotGothic16", monospace; cursor: pointer; scroll-snap-align: start;
     }
-    .chip.on { background: #1c2a44; color: #fff; border-color: #1c2a44; }
+    .chip.on { background: #ffb020; color: #0b0b0c; border-color: #ffb020; }
 
-    /* 電光掲示板ふうのお店カード */
+    /* ===== 真ん中：3Dモデル ===== */
+    model-viewer {
+      position: relative; display: block;
+      flex: 1; min-height: 0; width: 100%; background: #e9eef3;
+      --poster-color: #e9eef3;
+    }
+    .ar-btn {
+      position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+      min-height: 52px; padding: 0 28px; border: none; border-radius: 26px; white-space: nowrap;
+      background: #1a73e8; color: #fff; font-size: 17px; font-weight: 700;
+      box-shadow: 0 4px 14px rgba(26,115,232,.35);
+    }
+    .hint {
+      position: absolute; top: 10px; left: 0; right: 0; text-align: center;
+      font-size: 12px; color: #6b7785; pointer-events: none;
+    }
+    .err { position:absolute; top:30%; left:16px; right:16px; max-width:480px; margin:0 auto; padding:12px 14px;
+           background:#fff3f2; border:1px solid #ff3b30; border-radius:8px; color:#9b1c14; font-size:14px; line-height:1.6; }
+
+    /* ===== 下：お店カード + ほかの遊び方 ===== */
+    .sheet {
+      flex: none; background: #0b0b0c;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      font-family: "DotGothic16", monospace;
+    }
     .card {
-      position: absolute; left: 12px; right: 12px; bottom: 86px; max-width: 480px; margin: 0 auto;
-      background: #050505; border: 5px solid #2a2a2d; border-radius: 6px; padding: 10px 12px;
-      font-family: "DotGothic16", monospace; color: #ffb020; letter-spacing: .04em;
+      max-width: 520px; margin: 0 auto;
+      background: #050505; border: 3px solid #2a2a2d; border-radius: 8px; padding: 8px 12px;
+      color: #ffb020; letter-spacing: .03em;
     }
     .card .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-    .card .name { font-size: 20px; color: #f4f1e8; text-shadow: 0 0 3px currentColor; }
-    .card .genre { font-size: 12px; color: #999; }
+    .card .name { font-size: 19px; color: #f4f1e8; text-shadow: 0 0 3px currentColor;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card .genre { font-size: 12px; color: #999; margin-left: 6px; }
     .card .st { font-size: 15px; text-shadow: 0 0 3px currentColor; white-space: nowrap; }
     .ok { color: #3dff6e; } .few { color: #ffb020; } .full { color: #ff3b30; }
-    .card .menu { margin-top: 6px; font-size: 15px; text-shadow: 0 0 3px currentColor; }
-    .card .catch { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .card .menu { margin-top: 4px; font-size: 15px; text-shadow: 0 0 3px currentColor;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card .catch { font-size: 12px; color: #aaa; margin-top: 2px;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .err { position:absolute; top:40%; left:16px; right:16px; max-width:480px; margin:0 auto; padding:12px 14px;
-           background:#fff3f2; border:1px solid #ff3b30; border-radius:6px; color:#9b1c14; font-size:14px; line-height:1.6; }
-    .ar-btn {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      padding: 14px 28px; border: none; border-radius: 30px; white-space: nowrap;
-      background: #1a73e8; color: #ffffff; font-size: 16px;
+    .modes {
+      max-width: 520px; margin: 10px auto 0;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .mode {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      min-height: 58px; padding: 6px 4px; border-radius: 10px;
+      background: #1b1b1e; border: 1px solid #3a3a3d;
+      color: #f4f1e8; text-decoration: none; font-size: 13px; text-align: center; line-height: 1.2;
+    }
+    .mode .ic { font-size: 20px; }
+    .mode:active, .chip:active, .back:active { filter: brightness(1.3); }
+
+    /* 横向き・背の低い画面ではカードの説明を省いてモデルを広く見せる */
+    @media (max-height: 560px) {
+      .card .catch, .hint { display: none; }
+      .modes { margin-top: 6px; }
+      .mode { min-height: 44px; flex-direction: row; gap: 6px; }
+      .mode .ic { font-size: 16px; }
+    }
+    /* スマホを横にしたとき：左にモデル、右にカード（上下に積むとモデルが見えなくなるため） */
+    @media (orientation: landscape) and (max-height: 500px) {
+      body { display: grid; grid-template-columns: 1fr 300px; grid-template-rows: auto 1fr; }
+      header { grid-column: 1 / 3; padding-top: 6px; padding-bottom: 6px;
+               padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+               display: flex; align-items: center; }
+      header .chips { padding-top: 0; flex: 1; min-width: 0; }
+      .title { display: none; }
+      model-viewer { height: 100%; }
+      .sheet { overflow-y: auto; padding-right: calc(12px + env(safe-area-inset-right)); }
+      .modes { grid-template-columns: 1fr; gap: 6px; }
     }
   </style>
 </head>
 <body>
+
+  <header>
+    <div class="bar">
+      <a class="back" href="board.html">← 案内板</a>
+      <div class="title">🚋 お店の電車をえらぶ</div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
 
   <model-viewer id="mv"
     src="mini-hanamomen.glb?v=5"
@@ -75,28 +149,27 @@
     animation-name="Loop"
     shadow-intensity="1">
 
-    <div class="top">
-      <a class="back" href="board.html">← 案内板</a>
-      <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><a class="back" id="toTrack" href="track.html">📦 段ボールの線路</a><a class="back" id="toRail" href="rail.html">🛤 本物の線路</a><a class="back" href="maker.html">🎨 つくる</a></span>
-    </div>
-
-    <div class="chips" id="chips"></div>
+    <div class="hint">指でなぞると回せます・2本指で拡大</div>
     <div class="err" id="err" hidden></div>
+    <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
+  </model-viewer>
 
+  <div class="sheet">
     <div class="card">
       <div class="row">
-        <div>
-          <div class="name" id="cName">—</div>
-          <div class="genre" id="cGenre"></div>
-        </div>
+        <div class="name"><span id="cName">—</span><span class="genre" id="cGenre"></span></div>
         <div class="st" id="cSt"></div>
       </div>
       <div class="menu" id="cMenu"></div>
       <div class="catch" id="cCatch"></div>
     </div>
 
-    <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
-  </model-viewer>
+    <nav class="modes">
+      <a class="mode" id="toTrack" href="track.html"><span class="ic">📦</span>段ボールの線路</a>
+      <a class="mode" id="toRail" href="rail.html"><span class="ic">🛤</span>本物の線路</a>
+      <a class="mode" href="maker.html"><span class="ic">🎨</span>電車をつくる</a>
+    </nav>
+  </div>
 
 <script src="shops.js"></script>
 <script>
@@ -130,8 +203,11 @@
     $("cMenu").textContent  = current.menu.startsWith("本日限定") ? current.menu : "本日限定：" + current.menu;
     $("cCatch").textContent = current.catch;
     document.title = current.name + "号 | ジャッチュ AR";
-    document.querySelectorAll(".chip").forEach(c =>
-      c.classList.toggle("on", c.dataset.id === current.id));
+    document.querySelectorAll(".chip").forEach(c => {
+      const on = c.dataset.id === current.id;
+      c.classList.toggle("on", on);
+      if (on) c.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });  // 選んだお店を見える位置に
+    });
   }
 
   async function apply(){
