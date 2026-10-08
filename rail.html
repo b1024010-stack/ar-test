@@ -36,6 +36,12 @@
     .tb { position: fixed; top: calc(8px + env(safe-area-inset-top)); z-index: 6; font-size: 12px; padding: 6px 10px;
       border: 0; border-radius: 6px; background: rgba(0,0,0,.5); color: #ffb020; text-decoration: none; }
     #back { left: 8px; } #dbgBtn { right: 8px; color: #fff; }
+    #place { position: fixed; left: 50%; transform: translateX(-50%); top: calc(10px + env(safe-area-inset-top)); z-index: 5;
+      max-width: calc(100% - 150px); font-size: 11px; padding: 5px 10px; border-radius: 999px; background: rgba(0,0,0,.55);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #realWarn { position: fixed; left: 16px; right: 16px; top: 40%; z-index: 7; text-align: center; padding: 16px; border-radius: 12px;
+      background: rgba(180,20,20,.9); font-size: 16px; font-weight: bold; line-height: 1.6; }
+    #osm { position: fixed; right: 6px; bottom: 4px; z-index: 5; font-size: 9px; opacity: .6; }
     #dbg { position: fixed; top: calc(40px + env(safe-area-inset-top)); right: 8px; z-index: 6; width: 210px;
       background: rgba(0,0,0,.65); padding: 8px; border-radius: 8px; font-size: 11px; line-height: 1.6; }
     #dbg label { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
@@ -58,6 +64,9 @@
     <div id="info"></div>
   </div>
   <div id="status" hidden></div>
+  <div id="place"></div>
+  <div id="realWarn" hidden>🚋 本物の電車がまもなく来ます。<br>線路や車道から離れて、電車に注意してください</div>
+  <div id="osm">地図データ © OpenStreetMap contributors</div>
 
   <div id="start">
     <h1>本物の線路で走らせる</h1>
@@ -69,6 +78,7 @@
       ・本物の電車や車が近づいたら、すぐに画面から目を離してください<br>
       ・歩きながら使わないでください
     </div>
+    <p class="sub" style="font-size:12px;max-width:420px">位置情報と方位は、どの線路の近くにいるかを調べるためだけに、この端末の中で使います。送信や保存はしません。</p>
     <button class="btn" id="camBtn" disabled>読み込み中…</button>
     <label class="btn sec">🎞 撮った動画で試す<input type="file" id="fileIn" accept="video/*,image/*"></label>
     <div id="msg"></div>
@@ -180,9 +190,28 @@ function onOrient(e) {
   const u = new THREE.Vector3(-Math.cos(b) * Math.sin(g), Math.sin(b), Math.cos(b) * Math.cos(g));
   devUp = devUp ? devUp.lerp(u, 0.3).normalize() : u;
 }
+// 方位（カメラが向いている方角。北=0°・時計回り）
+let camHeading = null, headingAcc = null;
+function headingFromEuler(a, b, g) {           // 端末の向き（alpha/beta/gamma）→ 背面カメラの方角
+  const d = Math.PI / 180, ca = Math.cos(a * d), sa = Math.sin(a * d), sb = Math.sin(b * d), cg = Math.cos(g * d), sg = Math.sin(g * d);
+  const x = ca * sg + sa * sb * cg, y = sa * sg - ca * sb * cg;   // 端末の奥向き(-Z) の 東・北 成分（符号は下で反転）
+  return (Math.atan2(-x, -y) * 180 / Math.PI + 360) % 360;
+}
+function onCompass(e) {
+  let h = null;
+  if (typeof e.webkitCompassHeading === 'number') { h = e.webkitCompassHeading; headingAcc = e.webkitCompassAccuracy; }   // iPhone
+  else if (e.absolute && e.alpha != null && e.beta != null) h = headingFromEuler(e.alpha, e.beta, e.gamma);             // Android
+  if (h == null || isNaN(h)) return;
+  if (camHeading == null) camHeading = h;
+  else { const dd = ((h - camHeading + 540) % 360) - 180; camHeading = (camHeading + dd * 0.2 + 360) % 360; }
+}
 function enableSensors() {
   const DOE = window.DeviceOrientationEvent; if (!DOE) return;
-  const listen = () => addEventListener('deviceorientation', onOrient);
+  const listen = () => {
+    addEventListener('deviceorientation', onOrient);
+    addEventListener('deviceorientation', onCompass);
+    addEventListener('deviceorientationabsolute', onCompass);
+  };
   if (typeof DOE.requestPermission === 'function') DOE.requestPermission().then((r) => r === 'granted' && listen()).catch(() => {});
   else listen();
 }
@@ -192,6 +221,70 @@ function upFromSensor() {
   const a = THREE.MathUtils.degToRad(screen.orientation?.angle ?? window.orientation ?? 0);
   const sx = devUp.x * Math.cos(a) - devUp.y * Math.sin(a), sy = devUp.x * Math.sin(a) + devUp.y * Math.cos(a);
   return new THREE.Vector3(sx, -sy, -devUp.z).normalize();
+}
+
+/* =========================================================
+   位置情報と地図（線路の位置）
+   GPS で「どの線路の近くにいるか」、方位で「線路が画面のどちら向きに写るはずか」を予想し、
+   向きの合わないレール候補を外す。位置はこの端末の中だけで使い、送信も保存もしない。
+   地図データ © OpenStreetMap contributors（ODbL）。函館駅前・大門・十字街まわりの線路
+   ========================================================= */
+const MAP = {"W":[["函館市電本線",[13044,4446,13012,4505,12892,4701,12812,4831,12769,4900,12605,5166,12262,5725,12192,5841,11857,6383,11770,6522,11487,6985,11178,7485,10597,8430,10184,9101,10092,9242,10064,9281,9982,9382,9885,9463,9826,9511,9554,9703,8626,10357,8533,10426,8278,10605,7944,10841,7447,11198,7398,11248,7365,11283,7272,11419,7226,11498,7130,11652,7070,11750,6975,11907,6605,12503,6552,12585,6509,12655,6251,13063,5947,13560,5759,13871,5675,14003,5466,14342,4887,15277,4614,15716,4466,15953,4376,16115,4332,16197,4217,16444,4130,16638,4069,16830,4018,17028,3997,17161,3974,17359,3959,17570,3963,17744,3979,17868,4008,18061,4022,18145,4033,18217,4042,18261,4076,18397,4104,18493]],["函館市電本線",[4104,18493,4269,19087,4345,19281,4455,19535,4576,19798,4754,20149,4808,20259,5000,20639,5223,20996,5274,21076,5371,21226,5547,21448,5782,21732,6005,22002,6225,22275,6539,22648,6691,22838,6786,22951,6895,23062,7298,23440,7571,23723,7844,24008,7908,24072,8158,24314,8512,24656,8588,24736,8681,24823,8981,25124,9419,25561,9467,25602,9536,25665,9578,25699,9894,25967,9988,26048,10191,26227,10295,26319,10480,26484,10762,26731,10980,26916,11280,27124,11360,27179,11438,27235,11829,27508,11993,27618,12356,27866,12492,27960,12573,28015]],["函館市電本線",[4075,18507,4043,18384,4021,18292,4003,18211,3992,18143,3980,18068,3953,17893,3937,17754,3931,17617,3945,17356,3956,17251,3971,17150,3986,17042,4039,16820,4101,16627,4188,16435,4235,16334,4275,16244,4317,16162,4318,16161,4339,16120,4340,16119,4384,16034,4447,15934,4607,15671,4868,15254,5457,14302,5655,13982,5738,13847,5904,13569,6227,13043,6493,12629,6536,12562,6587,12481,6899,11974,7112,11630,7183,11514,7214,11461,7244,11414,7291,11337,7347,11260,7397,11199,7570,11066,7907,10832,8525,10393,8617,10329,9819,9478,9869,9437,9960,9360,10044,9257,10160,9085,10576,8406,11156,7462,11752,6502,11837,6364,12169,5818,12238,5701,12585,5140,12749,4875,12792,4806,12871,4676,12957,4541,13005,4496,13044,4446]],["函館市電宝来・谷地頭線",[4075,18507,4058,18479,4043,18453,4018,18419,3989,18393,3961,18377,3934,18364,3901,18357,3872,18356,3855,18356,3829,18365,3427,18594,3348,18638,3225,18706,3120,18770,2913,18887,2495,19124,2374,19192,2273,19250,1629,19617,1536,19670,1348,19780,1248,19837,1027,19962,962,20001,757,20119,608,20226,69,20626,-105,20751,-275,20874,-352,20905,-397,20922,-456,20921,-525,20916,-651,20885,-844,20825,-1095,20744,-1380,20646,-1548,20585,-1659,20523,-1712,20484,-1805,20397,-1895,20297,-2044,20129,-2365,19773,-2590,19525,-2700,19405,-3205,18840,-3524,18487,-3590,18415,-3664,18333,-4645,17238,-4708,17185,-4778,17138,-4838,17109,-5186,16984,-6122,16646,-6385,16552,-6517,16486]],["函館市電宝来・谷地頭線",[-6517,16486,-6379,16520,-6115,16615,-5179,16952,-4834,17079,-4773,17112,-4699,17158,-4628,17215,-3640,18313,-3572,18390,-3508,18463,-3190,18813,-2672,19385,-2573,19491,-2340,19757,-2073,20055,-2018,20115,-1878,20273,-1788,20370,-1701,20455,-1632,20503,-1519,20564,-1372,20618,-1057,20722,-837,20792,-646,20849,-521,20883,-471,20890,-410,20891,-350,20876,-287,20844,-115,20722,52,20598,560,20223,594,20194,743,20088,786,20060,947,19964,1237,19801,1334,19744,1525,19637,1620,19582,2257,19215,2361,19156,2479,19089,2900,18849,3104,18733,3213,18673,3332,18602,3414,18557,3808,18332,3844,18315,3860,18310,3896,18307,3931,18310,3963,18322,3995,18339,4018,18360,4032,18371,4043,18384,4064,18414,4087,18452,4104,18493]],["函館市電本線",[12552,28043,12480,27994,12343,27899,11983,27649,11757,27498,11427,27267,11345,27211,11268,27158,10964,26944,10742,26756,10463,26511,10281,26351,10177,26254,9973,26078,9877,25998,9521,25697,9452,25633,9405,25590,9324,25509,8968,25152,8663,24853,8571,24763,8494,24685,8141,24347,7891,24104,7827,24033,7534,23727,7273,23466,6879,23092,6768,22976,6674,22866,6604,22780,6202,22299,5985,22029,5767,21762,5525,21470,5441,21370,5349,21249,5253,21103,5202,21023,5068,20807,4959,20619,4786,20280,4745,20192,4551,19809,4436,19558,4320,19300,4247,19110,4075,18507]],["",[11543,33275,11581,33294,11631,33319,11654,33337]],["函館市電大森線",[11206,32933,11171,32857,11158,32812,11153,32797,11145,32694,11162,32580,11183,32515,11327,32095,11513,31550,11564,31401,11640,31179,12118,29790,12120,29782,12177,29617,12241,29433,12241,29433,12608,28362,12626,28313,12634,28242,12630,28197,12623,28163,12609,28124,12577,28070,12552,28043]],["函館市電大森線",[12573,28015,12613,28063,12639,28106,12638,28109,12645,28128,12655,28166,12660,28232,12655,28297,12636,28380,12264,29450,12199,29634,12141,29806,11662,31199,11585,31422,11536,31565,11348,32114,11206,32530,11186,32592,11177,32696,11187,32785,11189,32794,11202,32844,11213,32869,11230,32901]],["函館市電湯の川線",[11230,32901,11259,32948,11283,32982,11334,33031,11574,33261,11631,33319,11654,33337,11718,33399,11813,33489,11895,33564,12529,34162,12637,34262,12796,34413,12866,34493,12933,34575,12953,34605,13591,35396,13643,35463,13764,35618,13853,35737,14765,36872,14844,36970,14909,37051,15518,37811,15842,38204,15897,38278,15986,38390,16083,38511,16810,39441,16934,39588,17039,39713,17167,39866]],["函館市電湯の川線",[17167,39866,17489,40248]],["函館市電湯の川線",[17150,39890,17007,39720,16936,39635,16794,39465,16107,38592,16067,38542,15974,38426,15877,38305,15498,37837,14888,37075,14825,36997,14746,36899,13917,35864,13835,35760,13744,35644,13620,35489,13412,35227,12928,34623,12915,34603,12852,34525,12785,34453,12622,34290,12514,34189,11879,33594,11799,33519,11703,33428,11631,33359,11543,33275,11266,33012,11239,32977,11206,32933]],["函館市電湯の川線",[17473,40277,17150,39890]],["",[11829,27508,11757,27498]]],"S":[["松風町",11334,33031],["函館駅前",12356,27866],["十字街",4345,19281],["末広町",6605,12503],["市役所前",9578,25699],["新川町",13591,35396],["千歳町",15842,38204],["大町",10092,9242],["末広町",6587,12481],["宝来町",1027,19962],["函館駅前",12343,27899],["市役所前",9324,25509],["魚市場通",6604,22780],["十字街",4320,19300],["千歳町",16107,38592],["新川町",13917,35864],["松風町",11631,33359],["大町",9819,9478],["宝来町",560,20223]]};
+const MAP_LAT0 = 41.76, MAP_LON0 = 140.70;
+const mapWays = MAP.W.map(([name, f]) => { const pts = []; for (let i = 0; i < f.length; i += 2) pts.push([MAP_LAT0 + f[i] / 1e6, MAP_LON0 + f[i + 1] / 1e6]); return { name, pts }; })
+  .filter((w) => w.name);                       // 名前のない短い渡り線などは使わない
+const mapStops = MAP.S.map(([name, la, lo]) => ({ name, lat: MAP_LAT0 + la / 1e6, lon: MAP_LON0 + lo / 1e6 }));
+let geo = null, near = null;                    // near: { stop, stopDist, dist, bearing, count, line }
+function toXY(lat, lon, o) {                    // o を原点にした 東[m]・北[m]
+  return [(lon - o.lon) * 111320 * Math.cos(o.lat * Math.PI / 180), (lat - o.lat) * 110540];
+}
+function updateNear() {
+  if (!geo) return;
+  const segs = [];
+  for (const w of mapWays) for (let i = 0; i + 1 < w.pts.length; i++) {
+    const [ax, ay] = toXY(w.pts[i][0], w.pts[i][1], geo), [bx, by] = toXY(w.pts[i + 1][0], w.pts[i + 1][1], geo);
+    const vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy; if (L2 < 1e-6) continue;
+    const t = Math.max(0, Math.min(1, -(ax * vx + ay * vy) / L2));
+    const dist = Math.hypot(ax + vx * t, ay + vy * t);
+    segs.push({ w, dist, bearing: (Math.atan2(vx, vy) * 180 / Math.PI + 360) % 180 });
+  }
+  if (!segs.length) { near = null; return; }
+  segs.sort((a, b) => a.dist - b.dist);
+  const n0 = segs[0];
+  if (n0.dist > 80) { near = { far: true, dist: n0.dist }; return; }
+  // 同じ向きで近くを通る線（複線なら2本）を数える
+  const same = new Set();
+  for (const sg of segs) {
+    if (sg.dist > n0.dist + 8) break;
+    const dd = Math.abs(((sg.bearing - n0.bearing) % 180 + 270) % 180 - 90);
+    if (dd < 20) same.add(sg.w);
+  }
+  let stop = null, sd = Infinity;
+  for (const st of mapStops) { const [x, y] = toXY(st.lat, st.lon, geo); const dd = Math.hypot(x, y); if (dd < sd) { sd = dd; stop = st.name; } }
+  near = { stop, stopDist: sd, dist: n0.dist, bearing: n0.bearing, count: same.size, line: n0.w.name };
+}
+function startGeo() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.watchPosition((p) => {
+    geo = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
+    updateNear();
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+// 地図と方位から予想した「線路の向き」：カメラの正面から右回りに何度か（-90〜90°）。使えないときは null
+const fold90 = (a) => ((a % 180) + 270) % 180 - 90;
+function mapPrior() {
+  if (!near || near.far || camHeading == null || !upFromSensor()) return null;
+  if (geo && geo.acc > 60) return null;          // GPS が大きくずれているときは使わない
+  return fold90(near.bearing - camHeading);
+}
+
+/* ---------- 本物の電車の接近（サンプルの時刻表。実際の運行情報につなぐまでの仮） ---------- */
+const REAL_TRAMS = [2, 5, 8, 11];               // 12分おきの各電車の到着（分）。案内板（board.html）と同じ仮の値
+function nextRealTramMin() {
+  const d = new Date(), m = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+  let best = Infinity;
+  for (const off of REAL_TRAMS) { let n = Math.ceil((m - off) / 12) * 12 + off; if (n - m < 0) n += 12; best = Math.min(best, n - m); }
+  return best;
 }
 
 /* =========================================================
@@ -325,6 +418,7 @@ function solve(lines) {
 
   const f = focalPx() * pw / srcW;               // 処理画像での焦点距離
   const sensorUp = upFromSensor();
+  const prior = mapPrior();
   let best = null;
   for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length; j++) {
     const A = lines[i], B = lines[j];
@@ -371,6 +465,14 @@ function solve(lines) {
     for (const L of lines) if (L !== A && L !== B && offVP(L, V) < 0.012) support += L.v;
     if (side && support < 60) continue;
     let score = (A.v + B.v) * 0.5 + (A.rail + B.rail) * 150 + Math.min(support, 600) * 0.2;
+    // 地図と方位から予想した線路の向きに合うか（方位は 10〜20° ずれるので、25° までは気にしない）
+    if (prior != null) {
+      const fg = new THREE.Vector3(0, 0, 1).addScaledVector(u, -u.z).normalize();   // 地面上のカメラの正面
+      const rg = new THREE.Vector3().crossVectors(fg, u);                           // 地面上の右
+      const err = Math.abs(fold90(Math.atan2(d.dot(rg), d.dot(fg)) * 180 / Math.PI - prior));
+      if (err > 50 && !pick) continue;
+      score -= Math.max(0, err - 25) * 8;
+    }
     score -= Math.abs(hgt - 1.4) * (side ? 150 : 60);   // 手で持った高さらしいものを優先（横からは高さの誤差が出やすい）
     const lo = Math.min(ma, mb), hi = Math.max(ma, mb);
     if (pick) {                                  // タップで選んだレールに近い組を最優先
@@ -446,18 +548,33 @@ function loop(now) {
     if (pick) { pick.lo += (b.lo - pick.lo) * 0.5; pick.hi += (b.hi - pick.hi) * 0.5; }   // 選んだレールを追いかける
   }
   else if (now - lastFound > 1200) { anchor.visible = false; prev = null; S.d = S.u = S.c = null; S.side = null; if (now - lastFound > 4000) pick = null; }
+  // 本物の電車がもうすぐ来るとき（線路の近くにいるときだけ）は、ARの電車を隠して知らせる
+  const realMin = near && !near.far && near.dist < 40 ? nextRealTramMin() : Infinity;
+  const realSoon = realMin < 0.5;
+  $('realWarn').hidden = !realSoon;
+  if (realSoon) anchor.visible = false;
   if (trainReady) train.position.set(trainPos(now), 0, 0);
   renderer.render(scene, camera);
 
   const st = $('status');
   st.hidden = false;
-  st.textContent = taps.length === 1 ? 'もう1本のレールをタップしてください'
+  st.textContent = realSoon ? '本物の電車が通過するまでお待ちください'
+    : taps.length === 1 ? 'もう1本のレールをタップしてください'
     : anchor.visible ? `🚋 走行中（${S.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`
     : '線路を写してください（正面からでも横からでもOK）';
+  $('place').textContent = placeText(realMin);
 
   if (++fc >= 15) { fps = fc * 1000 / (now - ft); fc = 0; ft = now; }
   if (debug) drawDebug(lines, b, edges);
   window.__rail = { lines: lines.length, found: !!b, side: b && b.side, hgt: b && b.hgt };
+}
+function placeText(realMin) {
+  if (!geo) return '📍 位置情報なし';
+  if (!near) return '📍 地図の範囲外';
+  if (near.far) return `📍 線路から約${Math.round(near.dist)}m（地図の線路から離れています）`;
+  let t = `📍 ${near.stop}の近く ・ 線路まで約${Math.round(near.dist)}m（${near.count >= 2 ? '複線' : '単線'}）`;
+  if (isFinite(realMin)) t += ` ・ 本物の電車 あと${Math.max(0, Math.floor(realMin))}分（仮）`;
+  return t;
 }
 function drawDebug(lines, b, edges) {
   const W = ov.width, H = ov.height; octx.clearRect(0, 0, W, H);
@@ -471,7 +588,9 @@ function drawDebug(lines, b, edges) {
   if (b) { draw(b.A, '#3dff6e', 4); draw(b.B, '#3dff6e', 4); }
   $('info').innerHTML = `直線 ${lines.length} 本 / エッジ ${edges}<br>` +
     (b ? `${b.side ? '横から' : '正面から'} ・ カメラの高さ ${b.hgt.toFixed(2)} m<br>` : 'レールの組 なし<br>') +
-    `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし（動画）'}`;
+    `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし（動画）'}<br>` +
+    `方位 ${camHeading == null ? '—' : Math.round(camHeading) + '°'} ・ GPS ${geo ? '±' + Math.round(geo.acc) + 'm' : '—'}<br>` +
+    `線路の向きの予想 ${mapPrior() == null ? '—' : Math.round(mapPrior()) + '°'}`;
 }
 
 /* ---------- レールをタップして選ぶ（自動でちがう線を選んだときの手直し） ---------- */
@@ -500,7 +619,7 @@ function setSource(el, w, h) {
   t0 = performance.now(); requestAnimationFrame(loop);
 }
 async function startCamera() {
-  enableSensors(); useSensor = true;
+  enableSensors(); useSensor = true; startGeo();
   $('camBtn').disabled = true; $('camBtn').textContent = '起動中…';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false,
