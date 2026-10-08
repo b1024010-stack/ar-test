@@ -54,6 +54,7 @@
   <div id="dbg" hidden>
     <label>焦点 <input id="focal" type="range" min="50" max="130" value="80"><span id="focalV">0.80</span></label>
     <label>線の感度 <input id="sens" type="range" min="10" max="80" value="35"><span id="sensV">35</span></label>
+    <label>傾き（動画用） <input id="pitch" type="range" min="0" max="60" value="20"><span id="pitchV">20°</span></label>
     <div id="info"></div>
   </div>
   <div id="status" hidden></div>
@@ -82,10 +83,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
    設定
    ========================================================= */
 const RAIL_SPACING = 1.372 + 0.065;  // レールの中心どうしの間隔 [m]（函館市電の軌間 1372mm ＋ レール頭の幅）
-const PROC_W = 320;                  // 画像処理の横幅 [px]
+const PROC_W = 480;                  // 画像処理の横幅 [px]
 const STOP_AT = 14;                  // 電車が止まる位置（カメラの足元から線路ぞいに何m先か）
 const APPROACH_FROM = 90;            // 電車が現れる位置 [m]
 const H_MIN = 0.6, H_MAX = 2.6;      // ありえるカメラの高さ [m]（これ以外のレールの組は捨てる）
+const SIDE_RANGE = 60;               // 横から見たとき、電車が現れる・去っていく距離 [m]
 
 const params = new URLSearchParams(location.search);
 const shopId = params.get('shop') || 'hanamomen';
@@ -108,6 +110,10 @@ $('focal').value = Math.round(focalRatio * 100); $('focalV').textContent = focal
 $('sens').value = sens; $('sensV').textContent = sens;
 $('focal').oninput = () => { focalRatio = $('focal').value / 100; $('focalV').textContent = focalRatio.toFixed(2); store.set('railFocal', focalRatio); updateCamera(); };
 $('sens').oninput = () => { sens = +$('sens').value; $('sensV').textContent = sens; store.set('railSens', sens); };
+// 動画を横から撮ったときだけ使う「スマホの下向きの傾き」（カメラで使うときはセンサーで自動）
+let pitchDeg = +(params.get('pitch') || store.get('railPitch') || 20);
+$('pitch').value = pitchDeg; $('pitchV').textContent = pitchDeg + '°';
+$('pitch').oninput = () => { pitchDeg = +$('pitch').value; $('pitchV').textContent = pitchDeg + '°'; store.set('railPitch', pitchDeg); };
 $('dbgBtn').onclick = () => { debug = !debug; $('dbg').hidden = !debug; if (!debug) octx.clearRect(0,0,ov.width,ov.height); };
 
 /* =========================================================
@@ -189,7 +195,8 @@ function upFromSensor() {
 }
 
 /* =========================================================
-   レール検出（エッジ → ハフ変換で直線 → 消失点 → レールの組）
+   レール検出（エッジ → ハフ変換で直線 → レールの組）
+   正面（線路の奥を見る）でも、横（道路の向こうの線路を見る）でも使える
    ========================================================= */
 let gray, mag, ang, acc;
 const NT = 180;
@@ -201,8 +208,7 @@ function detectLines(img) {
   if (!gray || gray.length !== n) { gray = new Float32Array(n); mag = new Float32Array(n); ang = new Float32Array(n); }
   const d = img.data;
   for (let i = 0, j = 0; i < n; i++, j += 4) gray[i] = d[j] * 0.3 + d[j + 1] * 0.59 + d[j + 2] * 0.11;
-  // ソーベル
-  const y0 = Math.floor(h * 0.25);              // 上の方（空・建物）は使わない
+  const y0 = Math.floor(h * 0.08);              // いちばん上（空）は使わない。横から見ると線路は画面の上の方にも来る
   let cnt = 0;
   mag.fill(0);
   for (let y = Math.max(1, y0); y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
@@ -212,136 +218,168 @@ function detectLines(img) {
     const m = Math.hypot(gx, gy);
     if (m > sens * 4) { mag[i] = m; ang[i] = Math.atan2(gy, gx); cnt++; }
   }
-  // ハフ変換（勾配の向きに合う角度だけ投票）。ρ は画像中心から
+  // ハフ変換（勾配の向きに合う角度だけ投票）。ρ は画像中心から。横から見た水平に近い線も数える
   const R = Math.ceil(Math.hypot(w, h) / 2), NR = 2 * R + 1;
   if (!acc || acc.length !== NT * NR) acc = new Float32Array(NT * NR); else acc.fill(0);
   const cx = w / 2, cy = h / 2;
   for (let y = y0; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
     const i = y * w + x; if (!mag[i]) continue;
-    let t0 = Math.round(((ang[i] % Math.PI) + Math.PI) % Math.PI / Math.PI * NT);
-    for (let dt = -6; dt <= 6; dt++) {
+    const t0 = Math.round(((ang[i] % Math.PI) + Math.PI) % Math.PI / Math.PI * NT);
+    for (let dt = -5; dt <= 5; dt++) {
       const t = (t0 + dt + NT) % NT;
-      // ほぼ水平な線（θ≒90°）はレールではないので除外
-      if (t > 72 && t < 108) continue;
-      const r = Math.round((x - cx) * COS[t] + (y - cy) * SIN[t]) + R;
-      acc[t * NR + r] += 1;
+      const rr = Math.round((x - cx) * COS[t] + (y - cy) * SIN[t]) + R;
+      acc[t * NR + rr] += 1;
     }
   }
-  // 山を拾う（近い山はまとめる）
+  // 山を拾う（近い山はまとめる。横から見るとレール2本が近いので、まとめる幅は小さめ）
   const lines = [];
-  const minVotes = Math.max(18, h * 0.12);
-  for (let k = 0; k < 14; k++) {
+  const minVotes = Math.max(16, Math.min(w, h) * 0.12);
+  for (let k = 0; k < 24; k++) {
     let best = 0, bi = -1;
     for (let i = 0; i < acc.length; i++) if (acc[i] > best) { best = acc[i]; bi = i; }
     if (best < minVotes) break;
     const t = Math.floor(bi / NR), r = bi % NR - R;
     lines.push({ t: t * Math.PI / NT, r, v: best });
-    for (let tt = Math.max(0, t - 5); tt <= Math.min(NT - 1, t + 5); tt++)
-      for (let rr = Math.max(0, r + R - 6); rr <= Math.min(NR - 1, r + R + 6); rr++) acc[tt * NR + rr] = 0;
+    for (let tt = Math.max(0, t - 4); tt <= Math.min(NT - 1, t + 4); tt++)
+      for (let rr = Math.max(0, r + R - 4); rr <= Math.min(NR - 1, r + R + 4); rr++) acc[tt * NR + rr] = 0;
   }
+  for (const L of lines) refine(L, y0);
   return { lines, edges: cnt };
 }
-// 直線 x cosθ + y sinθ = ρ（中心原点）→ 元映像の px での 2 点・交点
-const toImg = (x, y) => [(x + pw / 2) * srcW / pw, (y + ph / 2) * srcH / ph];
-function xAtY(L, y) { return (L.r - y * Math.sin(L.t)) / Math.cos(L.t); }       // 中心原点の y で
-function intersect(a, b) {
-  const det = Math.cos(a.t) * Math.sin(b.t) - Math.sin(a.t) * Math.cos(b.t);
-  if (Math.abs(det) < 1e-6) return null;
-  return [(a.r * Math.sin(b.t) - b.r * Math.sin(a.t)) / det, (Math.cos(a.t) * b.r - Math.cos(b.t) * a.r) / det];
+// ハフ変換の角度は1°きざみで粗いので、線の近くのエッジ点に直線を当てはめ直して精度を上げる
+// （横から見たレールはほぼ平行なので、わずかな角度の違いが大事）
+function refine(L, y0) {
+  const w = pw, h = ph, c = Math.cos(L.t), s = Math.sin(L.t);
+  let sw = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+  for (let y = y0; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x, m = mag[i]; if (!m) continue;
+    const X = x - w / 2, Y = y - h / 2;
+    if (Math.abs(X * c + Y * s - L.r) > 2.5) continue;
+    if (Math.abs(Math.cos(ang[i] - L.t)) < 0.94) continue;        // 勾配の向きが合わない点は使わない
+    sw += m; sx += m * X; sy += m * Y; sxx += m * X * X; syy += m * Y * Y; sxy += m * X * Y;
+  }
+  if (sw <= 0) return;
+  const mx = sx / sw, my = sy / sw;
+  const cxx = sxx / sw - mx * mx, cyy = syy / sw - my * my, cxy = sxy / sw - mx * my;
+  // 主成分（線の向き）に直交する向きが法線
+  const th = 0.5 * Math.atan2(2 * cxy, cxx - cyy);                 // 線の向きの角度
+  let t = th + Math.PI / 2;
+  t = ((t % Math.PI) + Math.PI) % Math.PI;
+  const r = mx * Math.cos(t) + my * Math.sin(t);
+  if (Math.abs(Math.cos(t - L.t)) > 0.98) { L.t = t; L.r = r; }
 }
+// 直線 x cosθ + y sinθ = ρ（中心原点）
+const lineH = (L) => [Math.cos(L.t), Math.sin(L.t), -L.r];                       // 同次座標
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const linePt = (L, s) => [L.r * Math.cos(L.t) - s * Math.sin(L.t), L.r * Math.sin(L.t) + s * Math.cos(L.t)];
+const xAtY = (L, y) => (L.r - y * Math.sin(L.t)) / Math.cos(L.t);
+const yAtX = (L, x) => (L.r - x * Math.cos(L.t)) / Math.sin(L.t);
 
-// レールらしさ：線にそって横方向の明るさを見て、「光るレール頭」と「暗い溝」が
-// すぐ隣どうしにある所がどれだけ続くか（白線は暗い溝がない・ノイズは続かない）
+// レールらしさ：線にそって、「光るレール頭」と「暗い溝」がすぐ隣どうしにある所がどれだけ続くか
+// （白線は暗い溝がない・縁石は片側だけ明るい・ノイズは続かない）
 function railness(L) {
-  const nx = Math.cos(L.t), ny = Math.sin(L.t);
+  const nx = Math.cos(L.t), ny = Math.sin(L.t), Rm = Math.hypot(pw, ph) / 2;
   let hit = 0, tot = 0;
-  for (let yy = ph * 0.05; yy < ph / 2 - 2; yy += 3) {          // 画面の下半分（中心原点）
-    const x0 = xAtY(L, yy); if (!isFinite(x0)) continue;
+  for (let s = -Rm; s <= Rm; s += 3) {
+    const [x0, y0] = linePt(L, s);
+    if (x0 < -pw / 2 + 2 || x0 > pw / 2 - 2 || y0 < -ph * 0.42 || y0 > ph / 2 - 2) continue;
     const at = (k) => {
-      const X = Math.round(x0 + nx * k + pw / 2), Y = Math.round(yy + ny * k + ph / 2);
+      const X = Math.round(x0 + nx * k + pw / 2), Y = Math.round(y0 + ny * k + ph / 2);
       return (X < 0 || Y < 0 || X >= pw || Y >= ph) ? NaN : gray[Y * pw + X];
     };
-    // 線の両側すこし離れた所の明るさ（路面）。左右で大きく違えば白線や縁石のふち
     const side = (a, b) => { const v = []; for (let k = a; k <= b; k++) v.push(at(k)); v.sort((p, q) => p - q); return v[v.length >> 1]; };
-    const bl = side(-13, -8), br = side(8, 13);
+    const bl = side(-12, -7), br = side(7, 12);
     if (!isFinite(bl) || !isFinite(br)) continue;
     tot++;
     if (Math.abs(bl - br) > 20) continue;
     const bg = (bl + br) / 2;
     let mx = -1e9, mn = 1e9;
     for (let k = -4; k <= 4; k++) { const v = at(k); if (v > mx) mx = v; if (v < mn) mn = v; }
-    if (mx - bg > 22 && bg - mn > 22) hit++;                     // 明るいレール頭と暗い溝が両方ある
+    if (mx - bg > 12 && bg - mn > 12) hit++;
   }
-  return tot ? hit / tot : 0;
+  return tot >= 4 ? hit / tot : 0;
 }
 
-/* ---------- 消失点とレールの組から、地面と線路の向き・カメラの高さを求める ---------- */
+/* ---------- レールの組から、地面と線路の向き・カメラの高さを求める ---------- */
 let prev = null;       // 前フレームの結果（なめらかにするため）
-let pick = null;       // タップで選んだレール（測る高さでの左右の x）
+let pick = null;       // タップで選んだレール { col, lo, hi }
 let lastLines = [], taps = [];
+const YB = () => ph * 0.42;                      // 正面のとき：測る高さ（画面の下の方）
+// 測る位置での座標：col=false なら「下の方の横線」との交点の x、true なら「画面中央の縦線」との交点の y
+const measure = (L, col) => col ? yAtX(L, 0) : xAtY(L, YB());
 function solve(lines) {
   if (lines.length < 2) return null;
   for (const L of lines) L.rail ??= railness(L);
   const f = focalPx() * pw / srcW;               // 処理画像での焦点距離
-  const yb = ph * 0.42;                          // 測る高さ（中心から下へ、画面の下の方）
   const sensorUp = upFromSensor();
   let best = null;
   for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length; j++) {
     const A = lines[i], B = lines[j];
-    const V = intersect(A, B); if (!V) continue;
-    if (V[1] > yb - 10) continue;                // 消失点は測る高さより上
-    if (Math.abs(V[0]) > pw * 2.5) continue;
-    const xa = xAtY(A, yb), xb = xAtY(B, yb);
-    if (!isFinite(xa) || !isFinite(xb) || Math.abs(xa - xb) < 6) continue;
-    // ほかの線もこの消失点を通るか（道路の線・縁石も同じ点に集まる）
-    let support = 0;
-    for (const L of lines) {
-      const dd = Math.abs(V[0] * Math.cos(L.t) + V[1] * Math.sin(L.t) - L.r);
-      if (dd < pw * 0.02) support += L.v;
-    }
-    // 線路の向き d（カメラ座標）
-    const d = new THREE.Vector3(V[0] / f, V[1] / f, 1).normalize();
-    // 上向き u：センサーがあればそれ、なければ「画面の横軸は地面と平行」と仮定
+    // 2本の線の交わる点（消失点）。横から見たときはずっと遠く（ほぼ平行）
+    const V = cross3(lineH(A), lineH(B));
+    const Vn = Math.hypot(V[0], V[1], V[2]); if (Vn < 1e-9) continue;
+    const fin = Math.abs(V[2]) > 1e-6 * Math.hypot(V[0], V[1]);
+    const vx = fin ? V[0] / V[2] : Infinity, vy = fin ? V[1] / V[2] : Infinity;
+    // 線が寝ている（横から見た線路）なら画面中央の縦線上で、立っている（正面）なら下の方の横線上で測る
+    const col = Math.abs(Math.sin(A.t)) > 0.7 && Math.abs(Math.sin(B.t)) > 0.7;
+    if (!col) {
+      if (!fin || vy > YB() - 10 || Math.abs(vx) > pw * 2.5) continue;   // 正面：消失点は画面の上の方
+    } else if (fin && Math.abs(vx) < pw * 0.6 && Math.abs(vy) < ph * 0.6) continue;  // 画面の中で交わる2本は線路ではない
+    const ma = measure(A, col), mb = measure(B, col);
+    if (!isFinite(ma) || !isFinite(mb) || Math.abs(ma - mb) < 3) continue;
+    if (col && (Math.abs(ma) > ph / 2 || Math.abs(mb) > ph / 2)) continue;
+    // 線路の向き d（カメラ座標 x右・y下・z奥）
+    const d = new THREE.Vector3(V[0] / f, V[1] / f, V[2]).normalize();
+    if (d.z < 0 || (Math.abs(d.z) < 1e-3 && d.x < 0)) d.negate();
+    // 上向き u：センサー → それを使う／動画の正面 → 「画面の横軸は地面と平行」／動画の横 → 傾きスライダー
+    const side = Math.abs(d.z) < 0.57;         // 線路の向きが、カメラの向きから55°以上ずれていれば「横から」
     let u;
-    if (sensorUp) u = sensorUp.clone().addScaledVector(d, -sensorUp.dot(d)).normalize();
-    else {
+    if (sensorUp) u = sensorUp.clone();
+    else if (Math.abs(d.z) > 0.57) {
       const lat0 = new THREE.Vector3(1, 0, 0).addScaledVector(d, -d.x).normalize();
-      u = new THREE.Vector3().crossVectors(lat0, d).normalize();
-      if (u.y > 0) u.negate();                   // y下向きの座標なので、上は y<0
+      u = new THREE.Vector3().crossVectors(lat0, d);
+    } else {
+      const p = THREE.MathUtils.degToRad(pitchDeg);
+      u = new THREE.Vector3(0, -Math.cos(p), -Math.sin(p));
     }
+    u.addScaledVector(d, -u.dot(d)).normalize();
+    if (u.y > 0) u.negate();                     // y下向きの座標なので、上は y<0
     const lat = new THREE.Vector3().crossVectors(d, u).normalize();
-    const ray = (x, y) => new THREE.Vector3(x / f, y / f, 1);
-    const q = (r) => { const k = u.dot(r); return k < -1e-4 ? r.clone().multiplyScalar(-1 / k) : null; };
-    const qa = q(ray(xa, yb)), qb = q(ray(xb, yb)); if (!qa || !qb) continue;
+    const pa = col ? [0, ma] : [ma, YB()], pb = col ? [0, mb] : [mb, YB()];
+    const q = (x, y) => { const r = new THREE.Vector3(x / f, y / f, 1), k = u.dot(r); return k < -1e-4 ? r.multiplyScalar(-1 / k) : null; };
+    const qa = q(...pa), qb = q(...pb); if (!qa || !qb) continue;
     const sep = Math.abs(qa.clone().sub(qb).dot(lat));
     const hgt = RAIL_SPACING / sep;              // レール間隔 1.437m になるカメラの高さ
     if (hgt < H_MIN || hgt > H_MAX) continue;
     if (!pick && (A.rail < 0.25 || B.rail < 0.25)) continue;   // レールらしくない線（白線・ノイズ）は使わない
-    let score = (A.v + B.v) * 0.5 + support * 0.3 + (A.rail + B.rail) * 150;
+    let score = (A.v + B.v) * 0.5 + (A.rail + B.rail) * 150;
     score -= Math.abs(hgt - 1.4) * 60;           // 手で持った高さらしいものを優先
-    const lo = Math.min(xa, xb), hi = Math.max(xa, xb);
+    const lo = Math.min(ma, mb), hi = Math.max(ma, mb);
     if (pick) {                                  // タップで選んだレールに近い組を最優先
+      if (pick.col !== col) continue;
       const miss = Math.abs(lo - pick.lo) + Math.abs(hi - pick.hi);
-      if (miss > pw * 0.15) continue;
+      if (miss > Math.min(pw, ph) * 0.2) continue;
       score -= miss * 20;
-    } else if (prev) {                           // 前フレームと近いものを優先
-      score -= Math.hypot(V[0] - prev.V[0], V[1] - prev.V[1]) * 0.5;
-      score -= Math.abs((xa + xb) / 2 - prev.xm) * 1.0;
+    } else if (prev && prev.col === col) {       // 前フレームと近いものを優先
+      score -= Math.abs((lo + hi) / 2 - prev.mid) * 1.0;
     }
-    if (!best || score > best.score) best = { score, A, B, V, d, u, lat, hgt, qa, qb, xa, xb, xm: (xa + xb) / 2, yb };
+    if (!best || score > best.score) best = { score, A, B, side, col, d, u, lat, hgt, qa, qb, lo, hi, mid: (lo + hi) / 2 };
   }
   return best;
 }
 
 /* ---------- 求めた姿勢を、なめらかにして3Dに反映 ---------- */
-const S = { d: null, u: null, c: null };
+const S = { d: null, u: null, c: null, side: null };
 let lastFound = 0;
 function applyPose(b) {
-  const c = b.qa.clone().add(b.qb).multiplyScalar(b.hgt / 2);   // 足元の線路の中心（カメラ座標）
+  const c = b.qa.clone().add(b.qb).multiplyScalar(b.hgt / 2);   // 測った所の線路の中心（カメラ座標）
+  if (S.d && S.d.dot(b.d) < 0) b.d.negate();   // 線路の向きの「前後」を前フレームとそろえる（横から見ると入れかわりやすい）
+  if (S.side !== b.side || (S.d && S.d.dot(b.d) < 0.9)) { S.d = null; t0 = performance.now(); }  // 見方が変わったら最初から
   const k = S.d ? 0.25 : 1;
   S.d = S.d ? S.d.lerp(b.d, k).normalize() : b.d.clone();
   S.u = S.u ? S.u.lerp(b.u, k).normalize() : b.u.clone();
-  S.c = S.c ? S.c.lerp(c, k) : c;
+  S.c = S.c && k < 1 ? S.c.lerp(c, k) : c;
+  S.side = b.side;
   // カメラ座標（x右,y下,z奥）→ three（x右,y上,z手前）
   const T = (v) => new THREE.Vector3(v.x, -v.y, -v.z);
   const X = T(S.d), Y = T(S.u), Z = new THREE.Vector3().crossVectors(X, Y).normalize();
@@ -350,20 +388,28 @@ function applyPose(b) {
   anchor.matrix.copy(m); anchor.matrixWorldNeedsUpdate = true; anchor.visible = true;
 }
 
-/* ---------- 電車の動き：奥から来て止まり、また奥へ戻る（くり返し） ---------- */
+/* ---------- 電車の動き ----------
+   正面：奥から近づいて手前で止まり、また奥へ戻る
+   横　：画面の端から入ってきて正面で止まり、反対側へ走り去る */
 let t0 = performance.now();
 function trainPos(now) {
   const t = ((now - t0) / 1000) % 26;
   const ease = (u) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, u)));
-  if (t < 10) return APPROACH_FROM + (STOP_AT - APPROACH_FROM) * ease(t / 10);   // 近づいて止まる
-  if (t < 16) return STOP_AT;                                                     // 停車
-  return STOP_AT + (APPROACH_FROM - STOP_AT) * ease((t - 16) / 10);               // 奥へ戻る
+  const inn = (u) => 1 - (1 - u) * (1 - u), out = (u) => u * u;     // 減速しながら止まる／加速して出ていく
+  if (S.side) {
+    if (t < 10) return -SIDE_RANGE * (1 - inn(Math.min(1, t / 10)));
+    if (t < 16) return 0;
+    return SIDE_RANGE * out(Math.min(1, (t - 16) / 10));
+  }
+  if (t < 10) return APPROACH_FROM + (STOP_AT - APPROACH_FROM) * ease(t / 10);
+  if (t < 16) return STOP_AT;
+  return STOP_AT + (APPROACH_FROM - STOP_AT) * ease((t - 16) / 10);
 }
 
 /* =========================================================
    ループ
    ========================================================= */
-let fps = 0, fc = 0, ft = performance.now(), procMs = 0, lastRes = null;
+let fps = 0, fc = 0, ft = performance.now(), procMs = 0;
 function loop(now) {
   requestAnimationFrame(loop);
   if (!srcW) return;
@@ -376,42 +422,35 @@ function loop(now) {
   lastLines = lines;
   if (b) {
     prev = b; lastFound = now; applyPose(b);
-    if (pick) { pick.lo += (Math.min(b.xa, b.xb) - pick.lo) * 0.5; pick.hi += (Math.max(b.xa, b.xb) - pick.hi) * 0.5; }   // 選んだレールを追いかける
+    if (pick) { pick.lo += (b.lo - pick.lo) * 0.5; pick.hi += (b.hi - pick.hi) * 0.5; }   // 選んだレールを追いかける
   }
-  else if (now - lastFound > 1200) { anchor.visible = false; prev = null; S.d = S.u = S.c = null; if (now - lastFound > 4000) pick = null; }
+  else if (now - lastFound > 1200) { anchor.visible = false; prev = null; S.d = S.u = S.c = null; S.side = null; if (now - lastFound > 4000) pick = null; }
   if (trainReady) train.position.set(trainPos(now), 0, 0);
   renderer.render(scene, camera);
 
   const st = $('status');
   st.hidden = false;
   st.textContent = taps.length === 1 ? 'もう1本のレールをタップしてください'
-    : anchor.visible ? '🚋 走行中 ・ ちがう線路ならレールを2本タップ' : '線路をまっすぐ写してください';
+    : anchor.visible ? `🚋 走行中（${S.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`
+    : '線路を写してください（正面からでも横からでもOK）';
 
   if (++fc >= 15) { fps = fc * 1000 / (now - ft); fc = 0; ft = now; }
   if (debug) drawDebug(lines, b, edges);
-  lastRes = { lines: lines.length, found: !!b, hgt: b && b.hgt, V: b && b.V, xa: b && b.xa, xb: b && b.xb };
-  window.__rail = lastRes;
+  window.__rail = { lines: lines.length, found: !!b, side: b && b.side, hgt: b && b.hgt };
 }
 function drawDebug(lines, b, edges) {
   const W = ov.width, H = ov.height; octx.clearRect(0, 0, W, H);
-  const sx = W / pw, sy = H / ph;
-  const P = (x, y) => [(x + pw / 2) * sx, (y + ph / 2) * sy];
-  octx.lineWidth = 1.5;
-  for (const L of lines) {
-    const [x1, y1] = P(xAtY(L, -ph / 2), -ph / 2), [x2, y2] = P(xAtY(L, ph / 2), ph / 2);
-    octx.strokeStyle = 'rgba(255,255,0,.5)'; octx.beginPath(); octx.moveTo(x1, y1); octx.lineTo(x2, y2); octx.stroke();
-  }
-  if (b) {
-    octx.lineWidth = 4; octx.strokeStyle = '#3dff6e';
-    for (const L of [b.A, b.B]) {
-      const [x1, y1] = P(...b.V), [x2, y2] = P(xAtY(L, ph / 2), ph / 2);
-      octx.beginPath(); octx.moveTo(x1, y1); octx.lineTo(x2, y2); octx.stroke();
-    }
-    const [vx, vy] = P(...b.V); octx.fillStyle = '#ff3b30'; octx.beginPath(); octx.arc(vx, vy, 6, 0, 7); octx.fill();
-  }
+  const sx = W / pw, sy = H / ph, Rm = Math.hypot(pw, ph);
+  const P = ([x, y]) => [(x + pw / 2) * sx, (y + ph / 2) * sy];
+  const draw = (L, col, wdt) => {
+    const [x1, y1] = P(linePt(L, -Rm)), [x2, y2] = P(linePt(L, Rm));
+    octx.strokeStyle = col; octx.lineWidth = wdt; octx.beginPath(); octx.moveTo(x1, y1); octx.lineTo(x2, y2); octx.stroke();
+  };
+  for (const L of lines) draw(L, L.rail >= 0.25 ? 'rgba(255,255,0,.6)' : 'rgba(255,255,255,.2)', 1.5);
+  if (b) { draw(b.A, '#3dff6e', 4); draw(b.B, '#3dff6e', 4); }
   $('info').innerHTML = `直線 ${lines.length} 本 / エッジ ${edges}<br>` +
-    (b ? `カメラの高さ ${b.hgt.toFixed(2)} m<br>` : 'レールの組 なし<br>') +
-    `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし'}`;
+    (b ? `${b.side ? '横から' : '正面から'} ・ カメラの高さ ${b.hgt.toFixed(2)} m<br>` : 'レールの組 なし<br>') +
+    `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし（動画）'}`;
 }
 
 /* ---------- レールをタップして選ぶ（自動でちがう線を選んだときの手直し） ---------- */
@@ -421,11 +460,12 @@ stage.addEventListener('pointerup', (e) => {
   const x = (e.clientX - rc.left) / rc.width * pw - pw / 2, y = (e.clientY - rc.top) / rc.height * ph - ph / 2;
   let best = null, bd = Infinity;
   for (const L of lastLines) { const dd = Math.abs(x * Math.cos(L.t) + y * Math.sin(L.t) - L.r); if (dd < bd) { bd = dd; best = L; } }
-  if (!best || bd > pw * 0.06) return;
+  if (!best || bd > Math.min(pw, ph) * 0.06) return;
   taps.push(best);
   if (taps.length === 2) {
-    const yb = ph * 0.42, a = xAtY(taps[0], yb), b = xAtY(taps[1], yb);
-    pick = { lo: Math.min(a, b), hi: Math.max(a, b) }; taps = []; prev = null;
+    const col = Math.abs(Math.sin(taps[0].t)) > 0.7 && Math.abs(Math.sin(taps[1].t)) > 0.7;
+    const a = measure(taps[0], col), b = measure(taps[1], col);
+    pick = { col, lo: Math.min(a, b), hi: Math.max(a, b) }; taps = []; prev = null;
   }
 });
 
