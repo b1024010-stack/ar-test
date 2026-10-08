@@ -106,6 +106,7 @@
   </div>
 
   <div class="sec" style="border-bottom:none">
+    <button id="toTrack" style="width:100%;padding:14px;border:2px solid #1c2a44;border-radius:10px;background:#fff;color:#1c2a44;font-size:16px;margin-bottom:18px">📦 段ボールの線路で走らせる</button>
     <h2>車体の横の見本</h2>
     <div class="preview"><canvas id="pv" width="943" height="200"></canvas></div>
     <p class="hint">
@@ -313,6 +314,19 @@ if (isIOS){
 }
 const _update = update;
 update = function(){ _update(); if (isIOS){ clearTimeout(iosTimer); iosTimer = setTimeout(buildIOS, 1200); } };
+
+/* ---------- 段ボールの線路AR（track.html）へ、作った電車の絵を渡す ---------- */
+$("toTrack").onclick = () => {
+  paint();
+  const small = document.createElement("canvas"); small.width = small.height = 1024;
+  small.getContext("2d").drawImage(tex, 0, 0, 1024, 1024);
+  let saved = false;
+  for (const c of [tex, small]) {          // 大きくて保存できなければ、小さくして保存
+    try { localStorage.setItem("jatchu_wrap", c.toDataURL("image/jpeg", 0.85)); saved = true; break; } catch (e) {}
+  }
+  if (!saved) { alert("電車の絵を保存できませんでした（プライベートブラウズでは使えません）"); return; }
+  location.href = "track.html?shop=custom";
+};
 
 base.onload = update;
 document.fonts && document.fonts.ready.then(update);

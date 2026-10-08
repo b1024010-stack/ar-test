@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>段ボールの線路で走らせる | ジャッチュ</title>
+
+  <script type="text/plain" id="shimSrc">
+// 線路AR本体（main.js）が電車のモデルを読み込むところに割り込んで、
+// ジャッチュのお店の電車・じぶんで作った電車に差し替えるための部品。
+// main.js には手を入れず、track.html の importmap でこのファイルを GLTFLoader として渡している。
+import * as THREE from 'three';
+import { GLTFLoader as BaseLoader } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/GLTFLoader.js';
+
+const cfg = window.JATCHU_TRACK || {};
+
+// 車体のラッピング（H500_Wrap_Baked）の絵を、渡された画像に貼り替える
+function applyWrap(root, url) {
+  const tex = new THREE.TextureLoader().load(url);
+  tex.flipY = false;                         // glTF の決まり
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) {
+      if (m && m.name === 'H500_Wrap_Baked') { m.map = tex; m.needsUpdate = true; }
+    }
+  });
+}
+
+export class GLTFLoader extends BaseLoader {
+  load(url, onLoad, onProgress, onError) {
+    const isTrain = /Hakodate_500\.glb/.test(String(url));
+    const target = isTrain && cfg.model ? cfg.model : url;
+    const fallback = () => super.load(url, onLoad, onProgress, onError);   // 差し替えに失敗したら元の電車
+    return super.load(target, (gltf) => {
+      try { if (isTrain && cfg.wrap) applyWrap(gltf.scene, cfg.wrap); } catch (e) { console.error(e); }
+      onLoad(gltf);
+    }, onProgress, target === url ? onError : (e) => { console.warn('電車の差し替えに失敗', e); fallback(); });
+  }
+}
+  </script>
+
+  <script>
+    /* =========================================================
+       段ボールの線路AR（kosuke1029 さんの hakodate-ar）を、そのまま読み込んで使うページ。
+       本体のプログラムには手を入れず、「走らせる電車」だけをジャッチュの電車に差し替える。
+       ========================================================= */
+    const HOME = new URL('.', location.href).href;                    // このページのある場所（自分のサイト）
+    const BASE = 'https://kosuke1029.github.io/hakodate-ar/';         // 線路AR本体のある場所
+
+    const q = new URLSearchParams(location.search);
+    const shop = q.get('shop') || 'hanamomen';
+    window.JATCHU_TRACK = {
+      home: HOME, shop,
+      model: HOME + 'tram-' + (shop === 'custom' ? 'hanamomen' : shop) + '.glb?v=1',
+      wrap: null,
+    };
+    if (shop === 'custom') {           // じぶんで作った電車：maker.html が保存した絵を使う
+      try { window.JATCHU_TRACK.wrap = localStorage.getItem('jatchu_wrap'); } catch (e) {}
+    }
+
+    // 電車を差し替える部品（上の shimSrc の中身）を、読み込めるプログラムにする
+    const SHIM_URL = URL.createObjectURL(new Blob(
+      [document.getElementById('shimSrc').textContent], { type: 'text/javascript' }));
+
+    // ① これ以降の相対パス（main.js / style.css / vendor/opencv.js / test 画像）は線路AR本体から読む
+    document.write('<base href="' + BASE + '">');
+
+    // ② three.js の読み込み先。GLTFLoader だけ上の差し替え部品に入れ替える
+    document.write('<script type="importmap">' + JSON.stringify({ imports: {
+      'three': 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js',
+      'three/addons/': 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/',
+      'three/addons/loaders/GLTFLoader.js': SHIM_URL,
+    } }) + '<\/script>');
+
+    // ③ Web Worker は別のサイトのファイルを直接は起動できないので、
+    //    小さな起動用プログラムを作り、その中から本体の worker.js を読み込む
+    const NativeWorker = window.Worker;
+    window.Worker = function (url, opts) {
+      const abs = new URL(url, BASE).href;
+      const boot =
+        'const B=' + JSON.stringify(BASE) + ';' +
+        'const _is=self.importScripts.bind(self);' +
+        'self.importScripts=(...u)=>_is(...u.map((x)=>new URL(x,B).href));' +
+        '_is(' + JSON.stringify(abs) + ');';
+      return new NativeWorker(URL.createObjectURL(new Blob([boot], { type: 'text/javascript' })), opts);
+    };
+
+    // お店の名前（表示用）
+    document.write('<script src="' + HOME + 'shops.js"><\/script>');
+  </script>
+
+  <link rel="stylesheet" href="style.css?v=10">
+  <style>
+    #jBack {
+      position: fixed; top: calc(8px + env(safe-area-inset-top)); left: 8px; z-index: 20;
+      font-size: 13px; padding: 6px 10px; border-radius: 6px; text-decoration: none;
+      background: rgba(0,0,0,.55); color: #ffb020;
+    }
+    #jTrain {
+      display: inline-block; margin: 0 0 18px; padding: 8px 16px; border-radius: 8px;
+      background: rgba(255,255,255,.12); font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <a id="jBack">← もどる</a>
+
+  <!-- ここから下は線路AR本体と同じ部品（id を変えないこと） -->
+  <div id="stage">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="frame"></canvas>
+    <canvas id="gl"></canvas>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <div id="start">
+    <h1>函館市電 AR</h1>
+    <div id="jTrain">🚋 花もめん号</div>
+    <p>段ボールの線路をカメラに写すと<br>この電車が走ってきます</p>
+    <button id="startBtn" disabled>読み込み中…</button>
+    <p id="loadMsg" class="small"></p>
+  </div>
+
+  <div id="status" hidden></div>
+
+  <div id="debugPanel" hidden>
+    <label>線の感度 <input id="thresh" type="range" min="10" max="60" value="25"><span id="threshVal">25</span></label>
+    <label>焦点 <input id="focal" type="range" min="50" max="120" value="75"><span id="focalVal">自動</span></label>
+    <label><input id="focalAuto" type="checkbox" checked> 焦点を自動で合わせる</label>
+    <div id="debugInfo"></div>
+    <canvas id="maskView"></canvas>
+  </div>
+  <button id="debugBtn" hidden>DEBUG</button>
+
+  <script>
+    // 電車の名前と「もどる」の行き先
+    (function () {
+      const J = window.JATCHU_TRACK, shops = window.JATCHU_SHOPS || [];
+      const s = shops.find((x) => x.id === J.shop);
+      document.getElementById('jTrain').textContent =
+        '🚋 ' + (J.shop === 'custom' ? 'じぶんで作った電車' : (s ? s.name + '号' : '花もめん号'));
+      document.getElementById('jBack').href =
+        J.home + (J.shop === 'custom' ? 'maker.html' : 'mini.html?shop=' + encodeURIComponent(J.shop));
+      if (J.shop === 'custom' && !J.wrap) {
+        document.getElementById('jTrain').textContent = '🚋 花もめん号（作った電車が見つかりません）';
+      }
+    })();
+  </script>
+
+  <script type="module" src="main.js?v=10"></script>
+</body>
+</html>
