@@ -99,6 +99,8 @@ const PROC_W = 480;                  // 画像処理の横幅 [px]
 const STOP_AT = 14;                  // 電車が止まる位置（カメラの足元から線路ぞいに何m先か）
 const APPROACH_FROM = 90;            // 電車が現れる位置 [m]
 const H_MIN = 0.6, H_MAX = 2.6;      // ありえるカメラの高さ [m]（これ以外のレールの組は捨てる）
+const H_MIN_LIVE = 1.0, H_MAX_LIVE = 1.9;  // カメラで使うとき（手で持った高さ）。隣の線路のレールやホームの縁と組んだ「まちがいの組」を外す
+const REAL_DATA = false;             // 本物の運行情報につないだら true（今は仮の時刻表なので、接近の警告は出さない）
 const SIDE_RANGE = 60;               // 横から見たとき、電車が現れる・去っていく距離 [m]
 
 const params = new URLSearchParams(location.search);
@@ -451,10 +453,27 @@ function solve(lines) {
     if (!isFinite(ma) || !isFinite(mb) || Math.abs(ma - mb) < 3) continue;
     if (col && (Math.abs(ma) > ph / 2 || Math.abs(mb) > ph / 2)) continue;
     // 線路の向き d（カメラ座標 x右・y下・z奥）
-    const d = new THREE.Vector3(V[0] / f, V[1] / f, V[2]).normalize();
+    let d = new THREE.Vector3(V[0] / f, V[1] / f, V[2]).normalize();
+    let par = 0;                                 // 2本のレールが地面の上でどれだけ平行でないか [度]
+    if (sensorUp) {
+      // センサーで地面の向きが分かるときは、それぞれの線を地面の上にのせて向きを求める
+      // （横から見て2本がほぼ平行に写るときも、向きがぶれにくい）
+      const nA = new THREE.Vector3(Math.cos(A.t), Math.sin(A.t), -A.r / f);
+      const nB = new THREE.Vector3(Math.cos(B.t), Math.sin(B.t), -B.r / f);
+      const dA = new THREE.Vector3().crossVectors(nA, sensorUp).normalize();
+      const dB = new THREE.Vector3().crossVectors(nB, sensorUp).normalize();
+      if (dA.dot(dB) < 0) dB.negate();
+      par = Math.acos(Math.min(1, dA.dot(dB))) * 180 / Math.PI;
+      if (par > 15 && !pick) continue;          // 地面の上で平行でない2本はレールの組ではない
+      d = dA.add(dB).normalize();
+    }
     if (d.z < 0 || (Math.abs(d.z) < 1e-3 && d.x < 0)) d.negate();
     // 上向き u：センサー → それを使う／動画の正面 → 「画面の横軸は地面と平行」／動画の横 → 傾きスライダー
-    const side = Math.abs(d.z) < 0.57;         // 線路の向きが、カメラの向きから55°以上ずれていれば「横から」
+    let side = Math.abs(d.z) < 0.57;           // 線路の向きが、カメラの向きから55°以上ずれていれば「横から」
+    if (sensorUp) {                              // センサーがあるときは、地面の上での角度で決める
+      const fg = new THREE.Vector3(0, 0, 1).addScaledVector(sensorUp, -sensorUp.z).normalize();
+      side = Math.abs(d.dot(fg)) < 0.57;
+    }
     let u;
     if (sensorUp) u = sensorUp.clone();
     else if (Math.abs(d.z) > 0.57) {
@@ -473,6 +492,7 @@ function solve(lines) {
     const sep = Math.abs(qa.clone().sub(qb).dot(lat));
     const hgt = RAIL_SPACING / sep;              // レール間隔 1.437m になるカメラの高さ
     if (hgt < H_MIN || hgt > H_MAX) continue;
+    if (sensorUp && !side && !pick && (hgt < H_MIN_LIVE || hgt > H_MAX_LIVE)) continue;
     // レールらしくない線（白線・ノイズ）は使わない。片方が少し弱くても、2本合わせて十分ならよい
     if (!pick && (Math.min(A.rail, B.rail) < 0.12 || A.rail + B.rail < 0.5)) continue;
     // ほかの線（縁石・白線・もう1組のレール）も同じ向きにそろっているか。斜めのひび割れどうしの組を外す
@@ -488,7 +508,8 @@ function solve(lines) {
       if (err > 50 && !pick) continue;
       score -= Math.max(0, err - 25) * 8;
     }
-    score -= Math.abs(hgt - 1.4) * (side ? 150 : 60);   // 手で持った高さらしいものを優先（横からは高さの誤差が出やすい）
+    score -= Math.abs(hgt - 1.4) * (side ? 150 : sensorUp ? 200 : 60);   // 手で持った高さらしいものを優先（横からは高さの誤差が出やすい）
+    score -= par * 12;                           // 地面の上でより平行な組を優先
     const lo = Math.min(ma, mb), hi = Math.max(ma, mb);
     if (pick) {                                  // タップで選んだレールに近い組を最優先
       if (pick.col !== col) continue;
@@ -510,6 +531,7 @@ function solve(lines) {
 const W = { pos: null, quat: null, dir: null, side: null };   // 世界に固定した線路の位置と向き
 let lastFound = 0;
 const HOLD_MS_GYRO = 6000, HOLD_MS_NOGYRO = 1200;            // 見失ってから消すまで
+let viewChange = 0;                                           // 見方（正面／横・線路の向き）が変わったフレームが何回続いたか
 function applyPose(b) {
   // 横から見ると、レールの間隔から求めた高さは傾きのわずかな誤差で大きく変わるので、
   // 手で持つ高さとしてありえる範囲（1.1〜1.7m）におさえて使う
@@ -521,7 +543,11 @@ function applyPose(b) {
   const X = T(b.d), Y = T(b.u);
   const Xw = X.clone().applyQuaternion(Q);
   if (W.dir && W.dir.dot(Xw) < 0) { X.negate(); Xw.negate(); } // 線路の「前後」を前回とそろえる
-  const newView = W.side !== b.side || (W.dir && W.dir.dot(Xw) < 0.9);
+  const changed = W.pos && (W.side !== b.side || W.dir.dot(Xw) < 0.9);
+  // 一瞬だけの誤検出で電車を最初からやり直さない（横から見たときに電車が出てこなかった原因）
+  if (changed && ++viewChange < 10) return;
+  viewChange = 0;
+  const newView = !!changed;
   const Z = new THREE.Vector3().crossVectors(X, Y).normalize();
   const Yo = new THREE.Vector3().crossVectors(Z, X).normalize();
   const m = new THREE.Matrix4().makeBasis(X, Yo, Z); m.setPosition(T(c));
@@ -588,7 +614,7 @@ function loop(now) {
   else if (now - lastFound > (gyroOK() ? HOLD_MS_GYRO : HOLD_MS_NOGYRO)) { resetPose(); prev = null; if (now - lastFound > HOLD_MS_GYRO + 2000) pick = null; }
   else if (gyroOK()) prev = null;            // 見失っている間はジャイロで保つ（前回の候補に引っぱられないように）
   // 本物の電車がもうすぐ来るとき（線路の近くにいるときだけ）は、ARの電車を隠して知らせる
-  const realMin = near && !near.far && near.dist < 40 ? nextRealTramMin() : Infinity;
+  const realMin = REAL_DATA && near && !near.far && near.dist < 40 ? nextRealTramMin() : Infinity;
   const realSoon = realMin < 0.5;
   $('realWarn').hidden = !realSoon;
   if (realSoon) anchor.visible = false;
