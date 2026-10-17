@@ -4,6 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>本物の線路で走らせる（試作） | ジャッチュ</title>
+<!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ジャッチュ">
+
   <script type="importmap">
     { "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
@@ -109,9 +118,11 @@ const $ = (id) => document.getElementById(id);
 let debug = params.has('debug');
 
 /* ---------- 電車の名前・もどる ---------- */
+// お店の情報（スプレッドシートの読み込みを少し待つ）
+const shopInfo = window.jatchuFind ? await window.jatchuFind(shopId) : null;
+const trainModel = window.jatchuModelOf ? window.jatchuModelOf(shopInfo) : shopId;
 {
-  const s = (window.JATCHU_SHOPS || []).find((x) => x.id === shopId);
-  $('trainName').textContent = '🚋 ' + (s ? s.name + '号' : '花もめん号');
+  $('trainName').textContent = '🚋 ' + (shopInfo ? shopInfo.name + '号' : '花もめん号');
   $('back').href = 'mini.html?shop=' + encodeURIComponent(shopId);
 }
 
@@ -153,7 +164,7 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.ShadowMa
 ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true; train.add(ground);
 
 let trainReady = false;
-new GLTFLoader().load(`tram-${shopId}.glb?v=1`, onModel, undefined,
+new GLTFLoader().load(`tram-${trainModel}.glb?v=1`, onModel, undefined,
   () => new GLTFLoader().load('tram-hanamomen.glb?v=1', onModel));
 function onModel(gltf) {
   const m = gltf.scene;

@@ -1,0 +1,17 @@
+{
+  "name": "ジャッチュ 大門町×函館市電 AR",
+  "short_name": "ジャッチュ",
+  "description": "函館市電の待ち時間に、大門町のお店のラッピング電車をARで走らせる",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

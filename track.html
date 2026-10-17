@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>段ボールの線路で走らせる | ジャッチュ</title>
+<!-- ホーム画面から開いたときの見た目（このページは <base> で別サイトを読むので、manifest やアイコンは書かない） -->
+<meta name="theme-color" content="#0b0b0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ジャッチュ">
+
 
   <script type="text/plain" id="shimSrc">
 // 線路AR本体（main.js）が電車のモデルを読み込むところに割り込んで、
@@ -140,6 +147,8 @@ export class GLTFLoader extends BaseLoader {
     (function () {
       const J = window.JATCHU_TRACK, shops = window.JATCHU_SHOPS || [];
       const s = shops.find((x) => x.id === J.shop);
+      // スプレッドシートで「電車」を選んだお店は、そのデザインの電車にする
+      if (J.shop !== 'custom' && window.jatchuModelOf) J.model = J.home + 'tram-' + window.jatchuModelOf(s || { id: J.shop }) + '.glb?v=1';
       document.getElementById('jTrain').textContent =
         '🚋 ' + (J.shop === 'custom' ? 'じぶんで作った電車' : (s ? s.name + '号' : '花もめん号'));
       document.getElementById('jBack').href =

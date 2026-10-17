@@ -1,54 +1,201 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>函館市電 500形 花もめんラッピング AR</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ジャッチュ | 大門町×函館市電 AR</title>
+<!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ジャッチュ">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0b0b0c; --panel:#050505; --frame:#2a2a2d; --amber:#ffb020; --white:#f4f1e8;
+         --green:#3dff6e; --red:#ff3b30; --cyan:#4fd8ff; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--white);font-family:-apple-system,"Hiragino Sans",sans-serif;
+       -webkit-tap-highlight-color:transparent}
+  .wrap{max-width:520px;margin:0 auto;
+        padding:calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right))
+                calc(96px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+  .led{font-family:"DotGothic16",monospace;letter-spacing:.04em}
+  .glow{text-shadow:0 0 3px currentColor}
 
-  <!-- model-viewer を読み込む -->
-  <script type="module"
-    src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+  /* ロゴ */
+  .hero{display:flex;align-items:center;gap:12px;margin:4px 0 14px}
+  .hero img{width:56px;height:56px;border-radius:14px}
+  .hero h1{margin:0;font-size:26px;color:var(--amber);font-weight:normal}
+  .hero p{margin:2px 0 0;font-size:12px;color:#999}
 
-  <style>
-    body { margin: 0; font-family: sans-serif; }
-    model-viewer { width: 100vw; height: 100vh; background: #e9eef3; }
-    .title {
-      position: absolute; top: 16px; left: 16px; right: 16px;
-      font-size: 18px; font-weight: bold; color: #1c2a44;
-    }
-    .note { font-size: 13px; font-weight: normal; color: #555; margin-top: 4px; }
-    .ar-btn {
-      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-      padding: 14px 28px; border: none; border-radius: 30px;
-      background: #1a73e8; color: #ffffff; font-size: 16px;
-    }
-  </style>
+  /* いまの様子（電光掲示板ふう） */
+  .now{background:var(--panel);border:5px solid var(--frame);border-radius:8px;padding:10px 12px;margin-bottom:14px;
+       display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;text-decoration:none}
+  .now .k{font-size:12px;color:#999}
+  .now .v{font-size:20px;color:var(--amber)}
+  .now .v b{font-size:26px;font-weight:normal}
+  .now .ok{color:var(--green)}
+  .now .more{grid-column:1/3;font-size:12px;color:#888;text-align:right}
+
+  /* メニュー */
+  h2{font-size:13px;color:#999;font-weight:normal;margin:18px 2px 8px}
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .item{display:flex;flex-direction:column;gap:4px;min-height:104px;padding:12px;border-radius:12px;
+        background:#17171a;border:1px solid #2c2c30;color:var(--white);text-decoration:none}
+  .item:active{background:#232328}
+  .item .ic{font-size:28px;line-height:1}
+  .item .t{font-size:16px;font-weight:700}
+  .item .d{font-size:12px;color:#9a9a9f;line-height:1.5}
+  .item.big{grid-column:1/3;flex-direction:row;align-items:center;gap:14px;min-height:88px;
+            background:var(--amber);border-color:var(--amber);color:#111}
+  .item.big .d{color:#4a3500}
+  .item.big .ic{font-size:36px}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:#3a2a08;color:var(--amber);
+       vertical-align:2px;margin-left:4px;font-weight:normal}
+
+  /* ホーム画面に追加の案内 */
+  .install{position:relative;background:#132033;border:1px solid #2d4a73;border-radius:12px;padding:12px 40px 12px 14px;
+           margin-bottom:14px;font-size:13px;line-height:1.7}
+  .install b{color:var(--cyan)}
+  .install .x{position:absolute;top:4px;right:4px;width:36px;height:36px;border:0;background:none;color:#9ab;font-size:20px}
+  .install button.add{margin-top:8px;min-height:44px;padding:0 18px;border:0;border-radius:22px;background:var(--cyan);
+                      color:#062033;font-size:15px;font-weight:700}
+  .share{display:inline-block;width:18px;height:18px;vertical-align:-3px}
+
+  footer{margin-top:22px;font-size:11px;color:#777;line-height:1.7;text-align:center}
+
+  /* ===== 下のタブ（全ページ共通） ===== */
+  .jt-tabs{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);
+           background:rgba(11,11,12,.96);border-top:1px solid #2a2a2d;padding-bottom:env(safe-area-inset-bottom);
+           -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .jt-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;
+             color:#8a8a90;text-decoration:none;font-size:11px;font-family:-apple-system,"Hiragino Sans",sans-serif}
+  .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
+  .jt-tabs a.on{color:#ffb020}
+  .jt-tabs a.on span{filter:none;opacity:1}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-  <model-viewer
-    src="hanamomen.glb"
-    ios-src="hanamomen.usdz"
-    alt="函館市電 500形（花もめんラッピング）の3Dモデル"
-    ar
-    ar-modes="webxr scene-viewer quick-look"
-    ar-placement="floor"
-    ar-scale="auto"
-    camera-controls
-    touch-action="pan-y"
-    camera-orbit="35deg 75deg 28m"
-    camera-target="0m 2m 0m"
-    autoplay
-    animation-name="Run"
-    shadow-intensity="1">
-
-    <div class="title">
-      函館市電 500形（花もめんラッピング）
-      <div class="note">前後に6m走って停車し、ヘッドライトが点滅します。ARでは実物大（全長約13m）で表示されます。2本指でつまむと小さくできます。</div>
+  <div class="hero">
+    <img src="icons/icon-192.png" alt="">
+    <div>
+      <h1 class="led glow">ジャッチュ</h1>
+      <p>大門町 × 函館市電　待ち時間に、お店の電車を走らせよう</p>
     </div>
+  </div>
 
-    <button slot="ar-button" class="ar-btn">📷 ARで見る</button>
-  </model-viewer>
+  <!-- ホーム画面に追加の案内（追加ずみ・パソコンでは出ない） -->
+  <div class="install" id="install" hidden>
+    <button class="x" id="instX" aria-label="閉じる">×</button>
+    <div id="instIos" hidden>
+      📲 <b>ホーム画面に追加</b>すると、アプリのように使えます。<br>
+      Safari の <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#4fd8ff" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>（共有）→「ホーム画面に追加」を押してください。
+    </div>
+    <div id="instAnd" hidden>
+      📲 <b>ホーム画面に追加</b>すると、アプリのように使えます。<br>
+      <button class="add" id="instBtn">ホーム画面に追加する</button>
+    </div>
+  </div>
 
+  <!-- いまの様子 -->
+  <a class="now led" href="board.html">
+    <div><div class="k">函館駅前 次の電車</div><div class="v glow" id="nextTram">—</div></div>
+    <div><div class="k">いま入れるお店</div><div class="v glow ok" id="openShops">—</div></div>
+    <div class="more">案内板を見る ›</div>
+  </a>
+
+  <h2>あそぶ</h2>
+  <div class="menu">
+    <a class="item big" href="mini.html">
+      <span class="ic">🚋</span>
+      <span><span class="t">お店の電車をARで走らせる</span><br>
+            <span class="d">机や床の上を、大門町のお店のラッピング電車が走ります</span></span>
+    </a>
+    <a class="item" href="rail.html">
+      <span class="ic">🛤</span><span class="t">本物の線路で<span class="tag">試作</span></span>
+      <span class="d">函館市電の線路にカメラを向けると電車が走る</span>
+    </a>
+    <a class="item" href="track.html">
+      <span class="ic">📦</span><span class="t">段ボールの線路</span>
+      <span class="d">紙や段ボールの線路の上を走る</span>
+    </a>
+    <a class="item" href="maker.html">
+      <span class="ic">🎨</span><span class="t">電車をつくる</span>
+      <span class="d">色・模様・文字・写真で、じぶんの電車に</span>
+    </a>
+    <a class="item" href="life-size.html">
+      <span class="ic">🚃</span><span class="t">実物大の電車</span>
+      <span class="d">全長13mの500形を目の前に出す</span>
+    </a>
+  </div>
+
+  <h2>しらべる</h2>
+  <div class="menu">
+    <a class="item" href="board.html">
+      <span class="ic">🚏</span><span class="t">案内板</span>
+      <span class="d">電車の時刻・空席・限定メニュー・イベント</span>
+    </a>
+  </div>
+
+  <footer>
+    ⚠ 線路や車道には入らず、歩道や安全地帯から使ってください。<br>
+    ※ 時刻・お店・イベントの一部はサンプルです。
+  </footer>
+</div>
+
+<nav class="jt-tabs">
+  <a href="index.html" class="on"><span>🏠</span>ホーム</a>
+  <a href="board.html"><span>🚏</span>案内板</a>
+  <a href="mini.html"><span>🚋</span>AR</a>
+  <a href="maker.html"><span>🎨</span>つくる</a>
+</nav>
+
+<script src="shops.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+
+  /* ---------- いまの様子 ---------- */
+  // 次の電車（案内板と同じサンプルの時刻表：12分おきに 2・5・8・11 分）
+  const TRAM_OFFSETS = [2, 5, 8, 11];
+  function nextTram(){
+    const d = new Date(), m = d.getHours()*60 + d.getMinutes() + d.getSeconds()/60;
+    let best = Infinity;
+    for (const off of TRAM_OFFSETS){ let n = Math.ceil((m - off)/12)*12 + off; if (n - m < 0.02) n += 12; best = Math.min(best, n - m); }
+    $("nextTram").innerHTML = best < 1 ? "まもなく" : `あと<b>${Math.floor(best)}</b>分`;
+  }
+  function openShops(){
+    const shops = window.JATCHU_SHOPS || [];
+    $("openShops").innerHTML = `<b>${shops.filter(s => s.st !== "full").length}</b>軒`;
+  }
+  nextTram(); openShops();
+  setInterval(nextTram, 10000);
+  if (window.JATCHU_READY) window.JATCHU_READY.then(ok => { if (ok) openShops(); });
+
+  /* ---------- ホーム画面に追加の案内 ---------- */
+  const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+                  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} } };
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const closed = store.get("jatchu_install_closed");
+  if (!standalone && !closed && isIOS) { $("install").hidden = false; $("instIos").hidden = false; }
+
+  // Android（Chrome）：ブラウザが「追加できます」と知らせてきたら、ボタンを出す
+  let deferred = null;
+  addEventListener("beforeinstallprompt", e => {
+    e.preventDefault(); deferred = e;
+    if (!standalone && !closed) { $("install").hidden = false; $("instAnd").hidden = false; }
+  });
+  $("instBtn").onclick = async () => {
+    if (!deferred) return;
+    deferred.prompt(); await deferred.userChoice; deferred = null; $("install").hidden = true;
+  };
+  $("instX").onclick = () => { $("install").hidden = true; store.set("jatchu_install_closed", "1"); };
+</script>
 </body>
 </html>

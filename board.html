@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>大門町 案内板 | ジャッチュ</title>
+<!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ジャッチュ">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -16,7 +25,7 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--amber);font-family:"DotGothic16",monospace;
        -webkit-font-smoothing:none;letter-spacing:.04em}
-  .wrap{max-width:520px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
+  .wrap{max-width:520px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(90px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
   header{display:flex;justify-content:space-between;align-items:baseline;padding:6px 4px 10px}
   header h1{margin:0;font-size:20px;color:var(--white);font-weight:normal}
   header .sub{font-size:12px;color:#888}
@@ -79,6 +88,16 @@
   .legend{font-size:11px;color:#777;padding:4px 10px 8px}
   footer{font-size:11px;color:#666;text-align:center;margin-top:8px;line-height:1.7}
   @media (prefers-reduced-motion:reduce){.ticker span,.soon{animation:none}}
+
+  /* ===== 下のタブ（全ページ共通） ===== */
+  .jt-tabs{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);
+           background:rgba(11,11,12,.96);border-top:1px solid #2a2a2d;padding-bottom:env(safe-area-inset-bottom);
+           -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .jt-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;
+             color:#8a8a90;text-decoration:none;font-size:11px;font-family:-apple-system,"Hiragino Sans",sans-serif;letter-spacing:0}
+  .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
+  .jt-tabs a.on{color:#ffb020}
+  .jt-tabs a.on span{filter:none;opacity:1}
 </style>
 </head>
 <body>
@@ -105,7 +124,7 @@
 
   <!-- ② 空席情報 -->
   <section class="board">
-    <h2>いま入れるお店 <small>🚋AR でお店の電車が走ります</small></h2>
+    <h2>いま入れるお店 <small id="shopsUpd"></small></h2>
     <table id="shops"></table>
   </section>
 
@@ -129,6 +148,12 @@
   </footer>
 </div>
 
+<nav class="jt-tabs">
+  <a href="index.html"><span>🏠</span>ホーム</a>
+  <a href="board.html" class="on"><span>🚏</span>案内板</a>
+  <a href="mini.html"><span>🚋</span>AR</a>
+  <a href="maker.html"><span>🎨</span>つくる</a>
+</nav>
 <script src="shops.js"></script>
 <script>
 /* =========================================================
@@ -144,9 +169,9 @@ const TRAMS = [   // 系統・行き先・運転間隔(分)・ずらし(分)
 const LINE_STOPS = ["十字街","魚市場通","市役所前","函館駅前"];
 const MIN_PER_STOP = 2;   // 1区間あたりの目安（分）
 
-const SHOPS = window.JATCHU_SHOPS;          // お店のデータは shops.js にあります
-const MENUS = SHOPS.map(s => `${s.name} ／ ${s.menu}`)
-                   .concat(["ジャッチュ提示で 1杯目 50円引き（例）"]);
+// お店のデータは shops.js（Google スプレッドシートにつないだときはその表）から読みます
+let SHOPS = window.JATCHU_SHOPS;
+const EXTRA_MENUS = ["ジャッチュ提示で 1杯目 50円引き（例）"];
 
 const EVENTS = [  // 時刻・内容・場所
   { time:"17:00", title:"ARスタンプラリー 開始",   place:"大門町一帯" },
@@ -159,6 +184,7 @@ const EVENTS = [  // 時刻・内容・場所
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2,"0");
 const ST = window.JATCHU_STATUS;
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function minutesUntil(now, every, offset){
   const m = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
@@ -198,17 +224,24 @@ function renderTrams(){
 }
 
 function renderShops(){
+  SHOPS = window.JATCHU_SHOPS;
   $("shops").innerHTML = SHOPS.map(s => {
     const [label, cls] = ST[s.st];
-    return `<tr><td><span class="shop glow">${s.name}</span><span class="genre-sub">${s.genre}</span></td>
+    return `<tr><td><span class="shop glow">${esc(s.name)}</span><span class="genre-sub">${esc(s.genre)}</span></td>
             <td class="status glow ${cls}">${label}</td>
-            <td class="arcell"><a class="mini-ar" href="mini.html?shop=${s.id}">🚋 AR</a></td></tr>`;
+            <td class="arcell"><a class="mini-ar" href="mini.html?shop=${encodeURIComponent(s.id)}">🚋 AR</a></td></tr>`;
   }).join("");
   // 待ち時間ボタン：空席のあるお店からランダムに1つ
   const open = SHOPS.filter(s => s.st !== "full");
   const pick = open[Math.floor(Math.random()*open.length)] || SHOPS[0];
   $("waitAr").href = `mini.html?shop=${pick.id}`;
   $("waitAr").textContent = `📷 待ち時間にAR：「${pick.name}号」を走らせる`;
+  // 流れる文字（本日の限定メニュー）
+  $("ticker").textContent = SHOPS.filter(s => s.menu).map(s => `${s.name} ／ ${s.menu}`)
+                                 .concat(EXTRA_MENUS).join("　　◆　　");
+  const src = window.JATCHU_SOURCE, now = new Date();
+  $("shopsUpd").textContent = src === "sheet" ? pad(now.getHours()) + ":" + pad(now.getMinutes()) + " 更新"
+                            : src === "cache" ? "前回の情報" : "サンプル";
 }
 
 function renderEvents(){
@@ -217,9 +250,11 @@ function renderEvents(){
   ).join("");
 }
 
-$("ticker").textContent = MENUS.join("　　◆　　");
 renderShops(); renderEvents(); renderTrams();
 setInterval(renderTrams, 5000);
+// スプレッドシートを読み込めたら表示しなおす。そのあとも 2 分ごとに読み直す
+window.JATCHU_READY.then(ok => { if (ok) renderShops(); });
+setInterval(() => window.jatchuReload().then(ok => { if (ok) renderShops(); }), 120000);
 </script>
 </body>
 </html>

@@ -5,6 +5,15 @@
   <!-- viewport-fit=cover：iPhone のノッチやホームバーの位置を env(safe-area-inset-*) で取れるようにする -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>ジャッチュ お店の電車 AR</title>
+<!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ジャッチュ">
+
 
   <!-- model-viewer を読み込む -->
   <script type="module"
@@ -72,7 +81,7 @@
     /* ===== 下：お店カード + ほかの遊び方 ===== */
     .sheet {
       flex: none; background: #0b0b0c;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      padding: 10px 12px;
       font-family: "DotGothic16", monospace;
     }
     .card {
@@ -93,16 +102,27 @@
 
     .modes {
       max-width: 520px; margin: 10px auto 0;
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
     }
     .mode {
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      min-height: 58px; padding: 6px 4px; border-radius: 10px;
+      display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;
+      min-height: 48px; padding: 6px 4px; border-radius: 10px;
       background: #1b1b1e; border: 1px solid #3a3a3d;
       color: #f4f1e8; text-decoration: none; font-size: 13px; text-align: center; line-height: 1.2;
     }
     .mode .ic { font-size: 20px; }
-    .mode:active, .chip:active, .back:active { filter: brightness(1.3); }
+    .mode:active, .chip:active { filter: brightness(1.3); }
+    /* ===== 下のタブ（全ページ共通） ===== */
+    .jt-tabs{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);
+             background:rgba(11,11,12,.96);border-top:1px solid #2a2a2d;padding-bottom:env(safe-area-inset-bottom);
+             -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+    .jt-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;
+               color:#8a8a90;text-decoration:none;font-size:11px;font-family:-apple-system,"Hiragino Sans",sans-serif;letter-spacing:0}
+    .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
+    .jt-tabs a.on{color:#ffb020}
+    .jt-tabs a.on span{filter:none;opacity:1}
+    .jt-tabs { position: static; flex: none; }   /* このページでは画面の一番下の段として並べる */
+
 
     /* 横向き・背の低い画面ではカードの説明を省いてモデルを広く見せる */
     @media (max-height: 560px) {
@@ -113,7 +133,10 @@
     }
     /* スマホを横にしたとき：左にモデル、右にカード（上下に積むとモデルが見えなくなるため） */
     @media (orientation: landscape) and (max-height: 500px) {
-      body { display: grid; grid-template-columns: 1fr 300px; grid-template-rows: auto 1fr; }
+      body { display: grid; grid-template-columns: 1fr 300px; grid-template-rows: auto 1fr auto; }
+      .jt-tabs { grid-column: 1 / 3; }
+      .jt-tabs a { min-height: 40px; flex-direction: row; gap: 6px; font-size: 13px; }
+      .jt-tabs a span { font-size: 16px; }
       header { grid-column: 1 / 3; padding-top: 6px; padding-bottom: 6px;
                padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
                display: flex; align-items: center; }
@@ -129,7 +152,6 @@
 
   <header>
     <div class="bar">
-      <a class="back" href="board.html">← 案内板</a>
       <div class="title">🚋 お店の電車をえらぶ</div>
     </div>
     <div class="chips" id="chips"></div>
@@ -167,13 +189,19 @@
     <nav class="modes">
       <a class="mode" id="toTrack" href="track.html"><span class="ic">📦</span>段ボールの線路</a>
       <a class="mode" id="toRail" href="rail.html"><span class="ic">🛤</span>本物の線路</a>
-      <a class="mode" href="maker.html"><span class="ic">🎨</span>電車をつくる</a>
     </nav>
   </div>
 
+<nav class="jt-tabs">
+  <a href="index.html"><span>🏠</span>ホーム</a>
+  <a href="board.html"><span>🚏</span>案内板</a>
+  <a href="mini.html" class="on"><span>🚋</span>AR</a>
+  <a href="maker.html"><span>🎨</span>つくる</a>
+</nav>
+
 <script src="shops.js"></script>
 <script>
-  const SHOPS = window.JATCHU_SHOPS, ST = window.JATCHU_STATUS;
+  let SHOPS = window.JATCHU_SHOPS; const ST = window.JATCHU_STATUS;
   const mv = document.getElementById("mv");
   const $ = id => document.getElementById(id);
 
@@ -182,12 +210,17 @@
   let current = SHOPS.find(s => s.id === qid) || SHOPS[0];
 
   const VER = "v=5";   // モデルを作り直したら数字を1つ増やす
-  const glbOf  = s => `mini-${s.id}.glb?${VER}`;
-  const usdzOf = s => `mini-${s.id}.usdz`;
+  // 電車のモデルは、表の「電車」の欄で選んだもの（新しいお店は花もめんの電車）
+  const glbOf  = s => `mini-${window.jatchuModelOf(s)}.glb?${VER}`;
+  const usdzOf = s => `mini-${window.jatchuModelOf(s)}.usdz`;
 
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   // お店の切り替えボタン
-  $("chips").innerHTML = SHOPS.map(s =>
-    `<button class="chip" data-id="${s.id}">${s.name}号</button>`).join("");
+  function renderChips(){
+    $("chips").innerHTML = SHOPS.map(s =>
+      `<button class="chip" data-id="${esc(s.id)}">${esc(s.name)}号</button>`).join("");
+  }
+  renderChips();
   $("chips").addEventListener("click", e => {
     const b = e.target.closest(".chip"); if (!b) return;
     current = SHOPS.find(s => s.id === b.dataset.id);
@@ -232,12 +265,20 @@
   // モデルが読み込めなかったとき、ファイル名を表示する
   mv.addEventListener("error", () => {
     $("err").hidden = false;
-    $("err").innerHTML = `モデルを読み込めませんでした：<b>mini-${current.id}.glb</b><br>
+    $("err").innerHTML = `モデルを読み込めませんでした：<b>mini-${window.jatchuModelOf(current)}.glb</b><br>
       GitHub にこの名前のファイルがあるか（名前に (1) などが付いていないか）確認してください。`;
   });
   mv.addEventListener("load", () => { $("err").hidden = true; });
 
   apply();
+
+  // スプレッドシートを読み込めたら、お店の一覧とカードを新しい内容にする
+  window.JATCHU_READY.then(ok => {
+    if (!ok) return;
+    SHOPS = window.JATCHU_SHOPS;
+    current = SHOPS.find(s => s.id === current.id) || SHOPS.find(s => s.id === qid) || SHOPS[0];
+    renderChips(); apply();
+  });
 </script>
 </body>
 </html>
