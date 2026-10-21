@@ -78,6 +78,7 @@
   .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
+  .jt-tabs a small{font-size:1em}
 </style>
 </head>
 <body>
@@ -150,13 +151,14 @@
 <div class="dock">
   <div class="go"><button id="toTrack">📦 段ボールの線路で走らせる</button></div>
 <nav class="jt-tabs">
-  <a href="index.html"><span>🏠</span>ホーム</a>
-  <a href="board.html"><span>🚏</span>案内板</a>
-  <a href="mini.html"><span>🚋</span>AR</a>
-  <a href="maker.html" class="on"><span>🎨</span>つくる</a>
+  <a href="index.html"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
+  <a href="board.html"><span>🚏</span><small data-i18n="tab.board">案内板</small></a>
+  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
+  <a href="maker.html" class="on"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
 </nav>
 </div>
 
+<script src="lang.js"></script>
 <script>
 /* ---------- 設定 ---------- */
 const PRESET1 = ["#1d4e89","#b22222","#2e7d32","#6a1b9a","#222222","#f5f0e6"];

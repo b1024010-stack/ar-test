@@ -32,6 +32,38 @@ window.JATCHU_SHOPS = [
     menu:"道産ワイン グラス500円",  catch:"WINE & TAPAS" },
 ];
 
+/* ---------- 外国語の訳（lang.js で切り替え。表では「店名_en」のような列で書ける） ---------- */
+(function () {
+  const TR = {
+    "hanamomen": {
+      en:        { name:"Hanamomen", genre:"Izakaya / Skewers", menu:"Duck loin skewers", catch:"Sashimi, sushi, house-made tofu" },
+      "zh-Hant": { name:"花もめん", genre:"居酒屋・串燒", menu:"鴨里肌串", catch:"生魚片・壽司・自製豆腐" },
+      "zh-Hans": { name:"花もめん", genre:"居酒屋・串烧", menu:"鸭里脊串", catch:"刺身・寿司・自制豆腐" },
+      ko:        { name:"하나모멘", genre:"이자카야・꼬치", menu:"오리 등심 꼬치", catch:"회・스시・수제 두부" } },
+    "yakitori-a": {
+      en:        { name:"Yakitori A", genre:"Yakitori (grilled chicken)", menu:"Tsukune chicken meatballs (limited)", catch:"Charcoal-grilled with a secret sauce" },
+      "zh-Hant": { name:"烤雞串 A", genre:"烤雞串", menu:"雞肉丸串（限量）", catch:"炭火燒烤・祕傳醬汁" },
+      "zh-Hans": { name:"烤鸡串 A", genre:"烤鸡串", menu:"鸡肉丸串（限量）", catch:"炭火烧烤・秘传酱汁" },
+      ko:        { name:"야키토리 A", genre:"닭꼬치", menu:"츠쿠네 (수량 한정)", catch:"숯불구이・비전의 소스" } },
+    "sakaba-b": {
+      en:        { name:"Sakaba B", genre:"Japanese sake", menu:"Local sake tasting set of the month", catch:"A bar with Hakodate's local sake" },
+      "zh-Hant": { name:"酒場 B", genre:"日本酒", menu:"本月在地酒 品飲組合", catch:"函館在地酒齊聚的酒館" },
+      "zh-Hans": { name:"酒场 B", genre:"日本酒", menu:"本月当地酒 品饮组合", catch:"汇集函馆当地酒的酒馆" },
+      ko:        { name:"사카바 B", genre:"사케(일본주)", menu:"이달의 지역 사케 비교 시음", catch:"하코다테 지역 사케가 모인 술집" } },
+    "shokudo-c": {
+      en:        { name:"Shokudo C", genre:"Seafood / Set meals", menu:"Fresh squid sashimi set meal", catch:"Morning-caught seafood and set meals" },
+      "zh-Hant": { name:"食堂 C", genre:"海鮮・定食", menu:"早晨現撈 烏賊生魚片定食", catch:"早晨現撈海鮮・定食" },
+      "zh-Hans": { name:"食堂 C", genre:"海鲜・定食", menu:"早上现捞 鱿鱼刺身定食", catch:"早上现捞海鲜・定食" },
+      ko:        { name:"쇼쿠도 C", genre:"해산물・정식", menu:"아침에 잡은 오징어회 정식", catch:"아침에 잡은 해산물・정식" } },
+    "bar-d": {
+      en:        { name:"Bar D", genre:"Wine", menu:"Hokkaido wine ¥500 a glass", catch:"WINE & TAPAS" },
+      "zh-Hant": { name:"Bar D", genre:"葡萄酒", menu:"北海道產葡萄酒 每杯500日圓", catch:"WINE & TAPAS" },
+      "zh-Hans": { name:"Bar D", genre:"葡萄酒", menu:"北海道产葡萄酒 每杯500日元", catch:"WINE & TAPAS" },
+      ko:        { name:"바 D", genre:"와인", menu:"홋카이도산 와인 한 잔 500엔", catch:"WINE & TAPAS" } },
+  };
+  for (const s of window.JATCHU_SHOPS) if (TR[s.id]) s.i18n = TR[s.id];
+})();
+
 window.JATCHU_STATUS = {
   ok:   ["○ 空席",   "ok"],
   few:  ["△ わずか", "few"],
@@ -76,6 +108,20 @@ window.JATCHU_STATUS = {
     show: ["表示", "のせる", "show"],
   };
   const norm = (s) => String(s || "").normalize("NFKC").trim().toLowerCase();
+  // 外国語の列：「店名_en」「本日限定_ko」「ジャンル_zh-hant」など（見出しの後ろにことばの記号）
+  const LANG_TAG = { "en":"en", "english":"en", "英語":"en",
+    "zh-hant":"zh-Hant", "zh_hant":"zh-Hant", "zh-tw":"zh-Hant", "zh_tw":"zh-Hant", "繁体":"zh-Hant", "繁體":"zh-Hant",
+    "zh-hans":"zh-Hans", "zh_hans":"zh-Hans", "zh-cn":"zh-Hans", "zh_cn":"zh-Hans", "zh":"zh-Hans", "简体":"zh-Hans", "簡体":"zh-Hans",
+    "ko":"ko", "kr":"ko", "韓国語":"ko" };
+  function langCols(head) {                             // [{ field, lang, idx }]
+    const out = [];
+    head.forEach((h, idx) => {
+      const m = h.match(/^(.+?)[\s_(:]+([a-z_-]+|英語|繁体|繁體|简体|簡体|韓国語)\)?$/);
+      if (!m || !LANG_TAG[m[2]]) return;
+      for (const f of ["name", "genre", "menu", "catch"]) if (HEAD[f].some((n) => norm(n) === m[1])) out.push({ field: f, lang: LANG_TAG[m[2]], idx });
+    });
+    return out;
+  }
 
   function statusOf(v) {
     const s = norm(v);
@@ -91,7 +137,7 @@ window.JATCHU_STATUS = {
     const head = rows[0].map(norm), col = {};
     for (const k in HEAD) col[k] = head.findIndex((h) => HEAD[k].some((n) => norm(n) === h));
     if (col.name < 0) return null;                       // 「店名」の列がない表は使わない
-    const models = window.JATCHU_MODELS, out = [], used = new Set();
+    const models = window.JATCHU_MODELS, out = [], used = new Set(), lc = langCols(head);
     rows.slice(1).forEach((r, i) => {
       const get = (k) => (col[k] >= 0 ? String(r[col[k]] || "").trim() : "");
       const name = get("name"); if (!name) return;
@@ -99,8 +145,10 @@ window.JATCHU_STATUS = {
       let id = slug(get("id"), i); while (used.has(id)) id += "-2"; used.add(id);
       let model = norm(get("model"));
       if (!models.includes(model)) model = models.includes(id) ? id : "hanamomen";
+      const i18n = {};
+      for (const { field, lang, idx } of lc) { const v = String(r[idx] || "").trim(); if (v) (i18n[lang] ||= {})[field] = v; }
       out.push({ id, name, genre: get("genre"), st: statusOf(get("st")), model,
-                 menu: get("menu"), catch: get("catch") });
+                 menu: get("menu"), catch: get("catch"), i18n });
     });
     return out.length ? out : null;
   }

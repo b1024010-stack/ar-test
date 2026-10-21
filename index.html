@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ジャッチュ | 大門町×函館市電 AR</title>
+<title data-i18n-title="idx.title">ジャッチュ | 大門町×函館市電 AR</title>
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -76,6 +76,7 @@
   .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
+  .jt-tabs a small{font-size:1em}
 </style>
 </head>
 <body>
@@ -83,81 +84,83 @@
 
   <div class="hero">
     <img src="icons/icon-192.png" alt="">
-    <div>
-      <h1 class="led glow">ジャッチュ</h1>
-      <p>大門町 × 函館市電　待ち時間に、お店の電車を走らせよう</p>
+    <div style="flex:1;min-width:0">
+      <h1 class="led glow" data-i18n="idx.brand">ジャッチュ</h1>
+      <p data-i18n="idx.tagline">大門町 × 函館市電　待ち時間に、お店の電車を走らせよう</p>
     </div>
+    <div id="langSw" style="flex:none;align-self:flex-start"></div>
   </div>
 
   <!-- ホーム画面に追加の案内（追加ずみ・パソコンでは出ない） -->
   <div class="install" id="install" hidden>
     <button class="x" id="instX" aria-label="閉じる">×</button>
-    <div id="instIos" hidden>
-      📲 <b>ホーム画面に追加</b>すると、アプリのように使えます。<br>
-      Safari の <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#4fd8ff" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>（共有）→「ホーム画面に追加」を押してください。
-    </div>
+    <div id="instIos" hidden></div>
     <div id="instAnd" hidden>
-      📲 <b>ホーム画面に追加</b>すると、アプリのように使えます。<br>
-      <button class="add" id="instBtn">ホーム画面に追加する</button>
+      <span data-i18n-html="idx.and">📲 <b>ホーム画面に追加</b>すると、アプリのように使えます。</span><br>
+      <button class="add" id="instBtn" data-i18n="idx.addBtn">ホーム画面に追加する</button>
     </div>
   </div>
 
   <!-- いまの様子 -->
   <a class="now led" href="board.html">
-    <div><div class="k">函館駅前 次の電車</div><div class="v glow" id="nextTram">—</div></div>
-    <div><div class="k">いま入れるお店</div><div class="v glow ok" id="openShops">—</div></div>
-    <div class="more">案内板を見る ›</div>
+    <div><div class="k" id="nextLabel">函館駅前 次の電車</div><div class="v glow" id="nextTram">—</div></div>
+    <div><div class="k" data-i18n="idx.open">いま入れるお店</div><div class="v glow ok" id="openShops">—</div></div>
+    <div class="more" data-i18n="idx.more">案内板を見る ›</div>
   </a>
 
-  <h2>あそぶ</h2>
+  <h2 data-i18n="idx.play">あそぶ</h2>
   <div class="menu">
     <a class="item big" href="mini.html">
       <span class="ic">🚋</span>
-      <span><span class="t">お店の電車をARで走らせる</span><br>
-            <span class="d">机や床の上を、大門町のお店のラッピング電車が走ります</span></span>
+      <span><span class="t" data-i18n="idx.mini.t">お店の電車をARで走らせる</span><br>
+            <span class="d" data-i18n="idx.mini.d">机や床の上を、大門町のお店のラッピング電車が走ります</span></span>
     </a>
     <a class="item" href="rail.html">
-      <span class="ic">🛤</span><span class="t">本物の線路で<span class="tag">試作</span></span>
-      <span class="d">函館市電の線路にカメラを向けると電車が走る</span>
+      <span class="ic">🛤</span><span class="t"><span data-i18n="idx.rail.t">本物の線路で</span><span class="tag" data-i18n="idx.beta">試作</span></span>
+      <span class="d" data-i18n="idx.rail.d">函館市電の線路にカメラを向けると電車が走る</span>
     </a>
     <a class="item" href="track.html">
-      <span class="ic">📦</span><span class="t">段ボールの線路</span>
-      <span class="d">紙や段ボールの線路の上を走る</span>
+      <span class="ic">📦</span><span class="t" data-i18n="idx.track.t">段ボールの線路</span>
+      <span class="d" data-i18n="idx.track.d">紙や段ボールの線路の上を走る</span>
     </a>
     <a class="item" href="maker.html">
-      <span class="ic">🎨</span><span class="t">電車をつくる</span>
-      <span class="d">色・模様・文字・写真で、じぶんの電車に</span>
+      <span class="ic">🎨</span><span class="t" data-i18n="idx.maker.t">電車をつくる</span>
+      <span class="d" data-i18n="idx.maker.d">色・模様・文字・写真で、じぶんの電車に</span>
     </a>
     <a class="item" href="life-size.html">
-      <span class="ic">🚃</span><span class="t">実物大の電車</span>
-      <span class="d">全長13mの500形を目の前に出す</span>
+      <span class="ic">🚃</span><span class="t" data-i18n="idx.life.t">実物大の電車</span>
+      <span class="d" data-i18n="idx.life.d">全長13mの500形を目の前に出す</span>
     </a>
   </div>
 
-  <h2>しらべる</h2>
+  <h2 data-i18n="idx.find">しらべる</h2>
   <div class="menu">
     <a class="item" href="board.html">
-      <span class="ic">🚏</span><span class="t">案内板</span>
-      <span class="d">電車の時刻・空席・限定メニュー・イベント</span>
+      <span class="ic">🚏</span><span class="t" data-i18n="idx.board.t">案内板</span>
+      <span class="d" data-i18n="idx.board.d">電車の時刻・空席・限定メニュー・イベント</span>
     </a>
   </div>
 
   <footer>
-    ⚠ 線路や車道には入らず、歩道や安全地帯から使ってください。<br>
-    ※ 時刻・お店・イベントの一部はサンプルです。
+    <span data-i18n="safety">⚠ 線路や車道には入らず、歩道や安全地帯から使ってください。</span><br>
+    <span data-i18n="idx.sample">※ 時刻・お店・イベントの一部はサンプルです。</span><br>
+    <a href="qr.html" style="color:#888" data-i18n="idx.qr">🖨 QRコードの貼り紙をつくる（運営用）</a>
   </footer>
 </div>
 
 <nav class="jt-tabs">
-  <a href="index.html" class="on"><span>🏠</span>ホーム</a>
-  <a href="board.html"><span>🚏</span>案内板</a>
-  <a href="mini.html"><span>🚋</span>AR</a>
-  <a href="maker.html"><span>🎨</span>つくる</a>
+  <a href="index.html" class="on"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
+  <a href="board.html"><span>🚏</span><small data-i18n="tab.board">案内板</small></a>
+  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
+  <a href="maker.html"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
 </nav>
 
 <script src="shops.js"></script>
+<script src="lang.js"></script>
 <script>
   const $ = id => document.getElementById(id);
+  const SHARE_SVG = `<svg class="share" viewBox="0 0 24 24" fill="none" stroke="#4fd8ff" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>`;
+  JL.switcher($("langSw"));
 
   /* ---------- いまの様子 ---------- */
   // 次の電車（案内板と同じサンプルの時刻表：12分おきに 2・5・8・11 分）
@@ -166,13 +169,16 @@
     const d = new Date(), m = d.getHours()*60 + d.getMinutes() + d.getSeconds()/60;
     let best = Infinity;
     for (const off of TRAM_OFFSETS){ let n = Math.ceil((m - off)/12)*12 + off; if (n - m < 0.02) n += 12; best = Math.min(best, n - m); }
-    $("nextTram").innerHTML = best < 1 ? "まもなく" : `あと<b>${Math.floor(best)}</b>分`;
+    $("nextLabel").textContent = JL.t("idx.next", { stop: JL.name("函館駅前") });
+    $("nextTram").innerHTML = best < 1 ? JL.t("min.soon") : JL.t("min.left", { n: Math.floor(best) });
   }
   function openShops(){
     const shops = window.JATCHU_SHOPS || [];
-    $("openShops").innerHTML = `<b>${shops.filter(s => s.st !== "full").length}</b>軒`;
+    $("openShops").innerHTML = JL.t("idx.count", { n: shops.filter(s => s.st !== "full").length });
   }
-  nextTram(); openShops();
+  function iosText(){ $("instIos").innerHTML = JL.t("idx.ios", { icon: SHARE_SVG }); }
+  nextTram(); openShops(); iosText();
+  document.addEventListener("jatchu-lang", () => { nextTram(); openShops(); iosText(); });
   setInterval(nextTram, 10000);
   if (window.JATCHU_READY) window.JATCHU_READY.then(ok => { if (ok) openShops(); });
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>大門町 案内板 | ジャッチュ</title>
+<title data-i18n-title="bd.title">大門町 案内板 | ジャッチュ</title>
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -98,6 +98,7 @@
   .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
+  .jt-tabs a small{font-size:1em}
 </style>
 </head>
 <body>
@@ -105,18 +106,21 @@
 
   <header>
     <div>
-      <h1>大門町 案内板</h1>
-      <div class="sub">ジャッチュ ／ 函館駅前・松風町</div>
+      <h1 data-i18n="bd.title">大門町 案内板</h1>
+      <div class="sub" data-i18n="bd.sub">ジャッチュ ／ 函館駅前・松風町</div>
     </div>
-    <div id="clock" class="glow">--:--</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div id="clock" class="glow">--:--</div>
+      <div id="langSw"></div>
+    </div>
   </header>
 
   <!-- ① 市電の接近情報 -->
   <section class="board">
-    <h2>市電 函館駅前 のりば <small id="upd">--:-- 更新</small></h2>
+    <h2><span id="platform">市電 函館駅前 のりば</span> <small id="upd">--:-- 更新</small></h2>
     <table id="trams"></table>
     <div class="approach">
-      <div>▼ 次の電車の位置（湯の川方面）</div>
+      <div id="approach">▼ 次の電車の位置（湯の川方面）</div>
       <div class="line" id="line"></div>
       <a class="ar-btn glow" id="waitAr" href="mini.html">📷 待ち時間にARで電車を見る</a>
     </div>
@@ -124,60 +128,76 @@
 
   <!-- ② 空席情報 -->
   <section class="board">
-    <h2>いま入れるお店 <small id="shopsUpd"></small></h2>
+    <h2><span data-i18n="idx.open">いま入れるお店</span> <small id="shopsUpd"></small></h2>
     <table id="shops"></table>
   </section>
 
-  <a class="ar-btn glow" href="maker.html" style="margin:-4px 0 14px">🎨 じぶんの電車をつくって走らせる</a>
+  <a class="ar-btn glow" href="maker.html" style="margin:-4px 0 14px" data-i18n="bd.maker">🎨 じぶんの電車をつくって走らせる</a>
 
   <!-- ③ 本日の限定メニュー（流れる文字） -->
   <section class="board">
-    <h2>本日の限定メニュー</h2>
+    <h2 data-i18n="bd.menus">本日の限定メニュー</h2>
     <div class="ticker glow"><span id="ticker"></span></div>
   </section>
 
   <!-- ④ 今日のイベント -->
   <section class="board">
-    <h2>今日のイベント</h2>
+    <h2 data-i18n="bd.events">今日のイベント</h2>
     <table id="events" class="ev"></table>
   </section>
 
-  <footer>
+  <footer data-i18n-html="bd.footer">
     ※ 表示している時刻・店舗・イベントはすべてサンプルです。<br>
     実際のサービスでは、市電の運行情報とお店の管理画面につないで自動で更新します。
   </footer>
 </div>
 
 <nav class="jt-tabs">
-  <a href="index.html"><span>🏠</span>ホーム</a>
-  <a href="board.html" class="on"><span>🚏</span>案内板</a>
-  <a href="mini.html"><span>🚋</span>AR</a>
-  <a href="maker.html"><span>🎨</span>つくる</a>
+  <a href="index.html"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
+  <a href="board.html" class="on"><span>🚏</span><small data-i18n="tab.board">案内板</small></a>
+  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
+  <a href="maker.html"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
 </nav>
 <script src="shops.js"></script>
+<script src="lang.js"></script>
 <script>
 /* =========================================================
    ここを書き換えると表示が変わります（サンプルデータ）
    ========================================================= */
 const TRAMS = [   // 系統・行き先・運転間隔(分)・ずらし(分)
-  { kei:"2", dest:"谷地頭 行",       every:12, offset:2 },
-  { kei:"5", dest:"函館どつく前 行", every:12, offset:8 },
-  { kei:"2", dest:"湯の川 行",       every:12, offset:5 },
-  { kei:"5", dest:"湯の川 行",       every:12, offset:11 },
+  { kei:"2", dest:"谷地頭",       every:12, offset:2 },
+  { kei:"5", dest:"函館どつく前", every:12, offset:8 },
+  { kei:"2", dest:"湯の川",       every:12, offset:5 },
+  { kei:"5", dest:"湯の川",       every:12, offset:11 },
 ];
-// 湯の川方面の電車が来る順番（函館駅前の手前の停留場）
-const LINE_STOPS = ["十字街","魚市場通","市役所前","函館駅前"];
+// 電停ごとの設定（QRコードの ?stop=◯◯ で切り替え）
+//   line  : 湯の川方面の電車が来る順番（その電停の手前の停留場）
+//   shift : 函館駅前とくらべて、電車が何分おそく来るか（サンプル）
+const STOPS = {
+  ekimae:    { name:"函館駅前", line:["十字街","魚市場通","市役所前","函館駅前"], shift:0 },
+  matsukaze: { name:"松風町",   line:["魚市場通","市役所前","函館駅前","松風町"], shift:2 },
+};
+const STOP = STOPS[new URLSearchParams(location.search).get("stop")] || STOPS.ekimae;
+const LINE_STOPS = STOP.line;
 const MIN_PER_STOP = 2;   // 1区間あたりの目安（分）
 
 // お店のデータは shops.js（Google スプレッドシートにつないだときはその表）から読みます
 let SHOPS = window.JATCHU_SHOPS;
-const EXTRA_MENUS = ["ジャッチュ提示で 1杯目 50円引き（例）"];
+const EXTRA_MENUS = ["bd.extra"];   // 訳は lang.js の DICT にあります
 
-const EVENTS = [  // 時刻・内容・場所
-  { time:"17:00", title:"ARスタンプラリー 開始",   place:"大門町一帯" },
-  { time:"18:30", title:"ラッピング電車 撮影会",   place:"函館駅前 停留場" },
-  { time:"19:30", title:"路上ライブ",               place:"グリーンプラザ（例）" },
-  { time:"21:00", title:"はしご酒タイム 延長",     place:"参加店" },
+const EVENTS = [  // 時刻・内容・場所（外国語は en / zh-Hant / zh-Hans / ko。無ければ日本語）
+  { time:"17:00",
+    title:{ ja:"ARスタンプラリー 開始", en:"AR stamp rally starts", "zh-Hant":"AR集章活動 開始", "zh-Hans":"AR集章活动 开始", ko:"AR 스탬프 랠리 시작" },
+    place:{ ja:"大門町一帯", en:"Around Daimon", "zh-Hant":"大門町一帶", "zh-Hans":"大门町一带", ko:"다이몬초 일대" } },
+  { time:"18:30",
+    title:{ ja:"ラッピング電車 撮影会", en:"Wrapped tram photo session", "zh-Hant":"彩繪電車 攝影會", "zh-Hans":"彩绘电车 摄影会", ko:"래핑 전차 촬영회" },
+    place:{ ja:"函館駅前 停留場", en:"Hakodate-ekimae tram stop", "zh-Hant":"函館站前 電車站", "zh-Hans":"函馆站前 电车站", ko:"하코다테에키마에 정류장" } },
+  { time:"19:30",
+    title:{ ja:"路上ライブ", en:"Street live music", "zh-Hant":"街頭現場表演", "zh-Hans":"街头现场表演", ko:"거리 라이브" },
+    place:{ ja:"グリーンプラザ（例）", en:"Green Plaza (example)", "zh-Hant":"Green Plaza（範例）", "zh-Hans":"Green Plaza（示例）", ko:"그린 플라자 (예시)" } },
+  { time:"21:00",
+    title:{ ja:"はしご酒タイム 延長", en:"Bar-hopping hours extended", "zh-Hant":"續攤時間 延長", "zh-Hans":"续摊时间 延长", ko:"술집 순례 시간 연장" },
+    place:{ ja:"参加店", en:"Participating shops", "zh-Hant":"參加店家", "zh-Hans":"参加店家", ko:"참가 가게" } },
 ];
 /* ========================================================= */
 
@@ -196,18 +216,20 @@ function minutesUntil(now, every, offset){
 function renderTrams(){
   const now = new Date();
   $("clock").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
-  $("upd").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes()) + " 更新";
+  $("upd").textContent = JL.t("bd.updated", { t: pad(now.getHours()) + ":" + pad(now.getMinutes()) });
+  $("platform").textContent = JL.t("bd.platform", { stop: JL.name(STOP.name) });
+  $("approach").textContent = JL.t("bd.approach", { d: JL.name("湯の川") });
 
-  const rows = TRAMS.map(t => ({...t, left: minutesUntil(now, t.every, t.offset)}))
+  const rows = TRAMS.map(t => ({...t, left: minutesUntil(now, t.every, t.offset + STOP.shift)}))
                     .sort((a,b) => a.left - b.left);
   $("trams").innerHTML = rows.map((t,i) => {
     const mins = Math.floor(t.left);
     const soon = t.left < 1;
-    const txt  = soon ? "まもなく" : `あと<b>${mins}</b>分`;
+    const txt  = soon ? JL.t("min.soon") : JL.t("min.left", { n: mins });
     return `<tr>
-      <td class="num">${i===0?"先発":"次発"}</td>
-      <td><span class="kei k${t.kei}">${t.kei}系統</span></td>
-      <td class="dest glow">${t.dest}</td>
+      <td class="num">${JL.t(i===0 ? "bd.first" : "bd.then")}</td>
+      <td><span class="kei k${t.kei}">${JL.t("bd.route", { n: t.kei })}</span></td>
+      <td class="dest glow">${esc(JL.t("bd.for", { d: JL.name(t.dest) }))}</td>
       <td class="min glow ${soon?"soon":""}">${txt}</td></tr>`;
   }).slice(0,3).join("");
 
@@ -219,38 +241,40 @@ function renderTrams(){
     const here = i === LINE_STOPS.length-1;
     const tram = i === idx ? `<span class="tram glow">🚋</span>` : "";
     return (i ? `<div class="seg"></div>` : "") +
-      `<div class="stop ${here?"here":""}">${tram}<span class="dot"></span>${s}</div>`;
+      `<div class="stop ${here?"here":""}">${tram}<span class="dot"></span>${esc(JL.name(s))}</div>`;
   }).join("");
 }
 
 function renderShops(){
   SHOPS = window.JATCHU_SHOPS;
   $("shops").innerHTML = SHOPS.map(s => {
-    const [label, cls] = ST[s.st];
-    return `<tr><td><span class="shop glow">${esc(s.name)}</span><span class="genre-sub">${esc(s.genre)}</span></td>
-            <td class="status glow ${cls}">${label}</td>
+    const cls = ST[s.st][1];
+    return `<tr><td><span class="shop glow">${esc(JL.shop(s, "name"))}</span><span class="genre-sub">${esc(JL.shop(s, "genre"))}</span></td>
+            <td class="status glow ${cls}">${JL.status(s.st)}</td>
             <td class="arcell"><a class="mini-ar" href="mini.html?shop=${encodeURIComponent(s.id)}">🚋 AR</a></td></tr>`;
   }).join("");
   // 待ち時間ボタン：空席のあるお店からランダムに1つ
   const open = SHOPS.filter(s => s.st !== "full");
   const pick = open[Math.floor(Math.random()*open.length)] || SHOPS[0];
   $("waitAr").href = `mini.html?shop=${pick.id}`;
-  $("waitAr").textContent = `📷 待ち時間にAR：「${pick.name}号」を走らせる`;
+  $("waitAr").textContent = JL.t("bd.wait", { car: JL.t("car", { name: JL.shop(pick, "name") }) });
   // 流れる文字（本日の限定メニュー）
-  $("ticker").textContent = SHOPS.filter(s => s.menu).map(s => `${s.name} ／ ${s.menu}`)
-                                 .concat(EXTRA_MENUS).join("　　◆　　");
+  $("ticker").textContent = SHOPS.filter(s => s.menu).map(s => `${JL.shop(s, "name")} ／ ${JL.shop(s, "menu")}`)
+                                 .concat(EXTRA_MENUS.map(k => JL.t(k))).join("　　◆　　");
   const src = window.JATCHU_SOURCE, now = new Date();
-  $("shopsUpd").textContent = src === "sheet" ? pad(now.getHours()) + ":" + pad(now.getMinutes()) + " 更新"
-                            : src === "cache" ? "前回の情報" : "サンプル";
+  $("shopsUpd").textContent = src === "sheet" ? JL.t("bd.updated", { t: pad(now.getHours()) + ":" + pad(now.getMinutes()) })
+                            : JL.t(src === "cache" ? "bd.src.cache" : "bd.src.sample");
 }
 
 function renderEvents(){
   $("events").innerHTML = EVENTS.map(e =>
-    `<tr><td class="time">${e.time}</td><td><span class="glow">${e.title}</span><span class="place">📍 ${e.place}</span></td></tr>`
+    `<tr><td class="time">${e.time}</td><td><span class="glow">${esc(JL.pick(e.title))}</span><span class="place">📍 ${esc(JL.pick(e.place))}</span></td></tr>`
   ).join("");
 }
 
+JL.switcher($("langSw"));
 renderShops(); renderEvents(); renderTrams();
+document.addEventListener("jatchu-lang", () => { renderShops(); renderEvents(); renderTrams(); });
 setInterval(renderTrams, 5000);
 // スプレッドシートを読み込めたら表示しなおす。そのあとも 2 分ごとに読み直す
 window.JATCHU_READY.then(ok => { if (ok) renderShops(); });

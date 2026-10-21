@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <!-- viewport-fit=cover：iPhone のノッチやホームバーの位置を env(safe-area-inset-*) で取れるようにする -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>ジャッチュ お店の電車 AR</title>
+  <title data-i18n-title="mn.title">ジャッチュ お店の電車 AR</title>
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -121,6 +121,7 @@
     .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
     .jt-tabs a.on{color:#ffb020}
     .jt-tabs a.on span{filter:none;opacity:1}
+    .jt-tabs a small { font-size: 1em; }
     .jt-tabs { position: static; flex: none; }   /* このページでは画面の一番下の段として並べる */
 
 
@@ -152,7 +153,8 @@
 
   <header>
     <div class="bar">
-      <div class="title">🚋 お店の電車をえらぶ</div>
+      <div class="title" data-i18n="mn.pick">🚋 お店の電車をえらぶ</div>
+      <div id="langSw" style="flex:none"></div>
     </div>
     <div class="chips" id="chips"></div>
   </header>
@@ -171,9 +173,9 @@
     animation-name="Loop"
     shadow-intensity="1">
 
-    <div class="hint">指でなぞると回せます・2本指で拡大</div>
+    <div class="hint" data-i18n="mn.hint">指でなぞると回せます・2本指で拡大</div>
     <div class="err" id="err" hidden></div>
-    <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
+    <button slot="ar-button" class="ar-btn" data-i18n="mn.ar">📷 ARで走らせる</button>
   </model-viewer>
 
   <div class="sheet">
@@ -187,19 +189,20 @@
     </div>
 
     <nav class="modes">
-      <a class="mode" id="toTrack" href="track.html"><span class="ic">📦</span>段ボールの線路</a>
-      <a class="mode" id="toRail" href="rail.html"><span class="ic">🛤</span>本物の線路</a>
+      <a class="mode" id="toTrack" href="track.html"><span class="ic">📦</span><span data-i18n="mn.track">段ボールの線路</span></a>
+      <a class="mode" id="toRail" href="rail.html"><span class="ic">🛤</span><span data-i18n="mn.rail">本物の線路</span></a>
     </nav>
   </div>
 
 <nav class="jt-tabs">
-  <a href="index.html"><span>🏠</span>ホーム</a>
-  <a href="board.html"><span>🚏</span>案内板</a>
-  <a href="mini.html" class="on"><span>🚋</span>AR</a>
-  <a href="maker.html"><span>🎨</span>つくる</a>
+  <a href="index.html"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
+  <a href="board.html"><span>🚏</span><small data-i18n="tab.board">案内板</small></a>
+  <a href="mini.html" class="on"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
+  <a href="maker.html"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
 </nav>
 
 <script src="shops.js"></script>
+<script src="lang.js"></script>
 <script>
   let SHOPS = window.JATCHU_SHOPS; const ST = window.JATCHU_STATUS;
   const mv = document.getElementById("mv");
@@ -218,7 +221,7 @@
   // お店の切り替えボタン
   function renderChips(){
     $("chips").innerHTML = SHOPS.map(s =>
-      `<button class="chip" data-id="${esc(s.id)}">${esc(s.name)}号</button>`).join("");
+      `<button class="chip" data-id="${esc(s.id)}">${esc(JL.t("car", { name: JL.shop(s, "name") }))}</button>`).join("");
   }
   renderChips();
   $("chips").addEventListener("click", e => {
@@ -229,13 +232,15 @@
   });
 
   function showCard(){
-    const [label, cls] = ST[current.st];
-    $("cName").textContent  = current.name + "号";
-    $("cGenre").textContent = current.genre;
-    $("cSt").textContent    = label;  $("cSt").className = "st " + cls;
-    $("cMenu").textContent  = current.menu.startsWith("本日限定") ? current.menu : "本日限定：" + current.menu;
-    $("cCatch").textContent = current.catch;
-    document.title = current.name + "号 | ジャッチュ AR";
+    const cls = ST[current.st][1], car = JL.t("car", { name: JL.shop(current, "name") });
+    $("cName").textContent  = car;
+    $("cGenre").textContent = JL.shop(current, "genre");
+    $("cSt").textContent    = JL.status(current.st);  $("cSt").className = "st " + cls;
+    const menu = JL.shop(current, "menu");
+    $("cMenu").textContent  = !menu ? "" : (JL.lang === "ja" && menu.startsWith("本日限定")) ? menu
+                            : JL.t("today", { m: menu.replace(/^本日限定[\s：:]*/, "") });
+    $("cCatch").textContent = JL.shop(current, "catch");
+    document.title = car + " | Jatchu AR";
     document.querySelectorAll(".chip").forEach(c => {
       const on = c.dataset.id === current.id;
       c.classList.toggle("on", on);
@@ -279,6 +284,10 @@
     current = SHOPS.find(s => s.id === current.id) || SHOPS.find(s => s.id === qid) || SHOPS[0];
     renderChips(); apply();
   });
+
+  // ことばを切り替えたら、お店の一覧とカードを書き直す
+  JL.switcher($("langSw"));
+  document.addEventListener("jatchu-lang", () => { renderChips(); showCard(); });
 </script>
 </body>
 </html>
