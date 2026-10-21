@@ -97,6 +97,8 @@ export class GLTFLoader extends BaseLoader {
 
     // お店の名前（表示用）
     document.write('<script src="' + HOME + 'shops.js"><\/script>');
+    // アクセス数（GoatCounter）
+    document.write('<script src="' + HOME + 'count.js"><\/script>');
   </script>
 
   <link rel="stylesheet" href="style.css?v=10">
@@ -153,6 +155,10 @@ export class GLTFLoader extends BaseLoader {
         '🚋 ' + (J.shop === 'custom' ? 'じぶんで作った電車' : (s ? s.name + '号' : '花もめん号'));
       document.getElementById('jBack').href =
         J.home + (J.shop === 'custom' ? 'maker.html' : 'mini.html?shop=' + encodeURIComponent(J.shop));
+      // 段ボールの線路を始めた数
+      document.addEventListener('click', (e) => {
+        if (e.target.closest && e.target.closest('#startBtn') && window.jatchuCount) jatchuCount('段ボールの線路 → ' + J.shop);
+      });
       if (J.shop === 'custom' && !J.wrap) {
         document.getElementById('jTrain').textContent = '🚋 花もめん号（作った電車が見つかりません）';
       }

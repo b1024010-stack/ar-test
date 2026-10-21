@@ -5,6 +5,7 @@
   <!-- viewport-fit=cover：iPhone のノッチやホームバーの位置を env(safe-area-inset-*) で取れるようにする -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title data-i18n-title="mn.title">ジャッチュ お店の電車 AR</title>
+<script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -288,6 +289,11 @@
   // ことばを切り替えたら、お店の一覧とカードを書き直す
   JL.switcher($("langSw"));
   document.addEventListener("jatchu-lang", () => { renderChips(); showCard(); });
+</script>
+<script>
+  // ARを始めた数（お店ごと）
+  document.querySelector(".ar-btn").addEventListener("click", () =>
+    jatchuCount("AR開始 → " + (new URLSearchParams(location.search).get("shop") || "hanamomen")));
 </script>
 </body>
 </html>

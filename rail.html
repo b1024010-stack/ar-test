@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>本物の線路で走らせる（試作） | ジャッチュ</title>
+<script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -731,6 +732,11 @@ if (params.get('img')) {
   im.onload = () => { stage.appendChild(im); video.hidden = true; useSensor = false; debug = true; setSource(im, im.naturalWidth, im.naturalHeight); };
   im.src = params.get('img');
 }
+</script>
+<script>
+  // 本物の線路を始めた数
+  document.getElementById("camBtn").addEventListener("click", () =>
+    jatchuCount("本物の線路 → " + (new URLSearchParams(location.search).get("shop") || "hanamomen")));
 </script>
 </body>
 </html>

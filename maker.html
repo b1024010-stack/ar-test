@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>じぶんの電車をつくる | ジャッチュ</title>
+<script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -375,6 +376,10 @@ $("toTrack").onclick = () => {
 base.onload = update;
 document.fonts && document.fonts.ready.then(update);
 update();
+</script>
+<script>
+  // ARを始めた数（じぶんの電車）。段ボールの線路へ進んだ数は track.html?shop=custom のページ数で分かる
+  document.querySelectorAll(".ar-btn").forEach(b => b.addEventListener("click", () => jatchuCount("AR開始 → じぶんの電車")));
 </script>
 </body>
 </html>

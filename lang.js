@@ -171,6 +171,7 @@
     lang = l; store.set("jatchu_lang", l);
     apply();
     document.dispatchEvent(new CustomEvent("jatchu-lang", { detail: l }));
+    if (window.jatchuCount) window.jatchuCount("ことば → " + l);   // 外国語に切り替えた数
   }
   // 🌐 ことばを選ぶボタン（el の中に入れる）
   function switcher(el) {
