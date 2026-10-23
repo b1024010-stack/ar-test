@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title data-i18n-title="idx.title">ジャッチュ | 大門町×函館市電 AR</title>
+<title data-i18n-title="idx.title">ジャッチュ | じぶんの電車をデザインして走らせよう</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
@@ -26,36 +26,43 @@
   .led{font-family:"DotGothic16",monospace;letter-spacing:.04em}
   .glow{text-shadow:0 0 3px currentColor}
 
-  /* ロゴ */
-  .hero{display:flex;align-items:center;gap:12px;margin:4px 0 14px}
-  .hero img{width:56px;height:56px;border-radius:14px}
-  .hero h1{margin:0;font-size:26px;color:var(--amber);font-weight:normal}
-  .hero p{margin:2px 0 0;font-size:12px;color:#999}
+  /* ロゴ（上の小さな帯） */
+  .top{display:flex;align-items:center;gap:10px;margin:2px 0 12px}
+  .top img{width:36px;height:36px;border-radius:9px}
+  .top .brand{flex:1;min-width:0;font-size:20px;color:var(--amber)}
 
-  /* いまの様子（電光掲示板ふう） */
-  .now{background:var(--panel);border:5px solid var(--frame);border-radius:8px;padding:10px 12px;margin-bottom:14px;
-       display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;text-decoration:none}
-  .now .k{font-size:12px;color:#999}
-  .now .v{font-size:20px;color:var(--amber)}
-  .now .v b{font-size:26px;font-weight:normal}
-  .now .ok{color:var(--green)}
-  .now .more{grid-column:1/3;font-size:12px;color:#888;text-align:right}
+  /* いちばん大事なところ：電車をデザインして走らせる */
+  .scene{display:block;position:relative;border-radius:16px;overflow:hidden;background:#142033;border:1px solid #24395a}
+  .scene svg{display:block;width:100%;height:auto}
+  .tram{animation:run 9s cubic-bezier(.45,.05,.55,.95) infinite}
+  @keyframes run{0%{transform:translateX(330px)}33%{transform:translateX(0)}55%{transform:translateX(0)}88%,100%{transform:translateX(-330px)}}
+  @media (prefers-reduced-motion: reduce){ .tram{animation:none} }
+  .main h1{margin:18px 2px 8px;font-size:26px;line-height:1.3;font-weight:900;letter-spacing:.01em}
+  .main h1 em{font-style:normal;color:var(--amber)}
+  .main p{margin:0 2px;font-size:14px;line-height:1.7;color:#b5b5bc}
+  .cta{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 0;min-height:64px;border-radius:32px;
+       background:var(--amber);color:#111;text-decoration:none;font-size:20px;font-weight:900;box-shadow:0 6px 20px rgba(255,176,32,.25)}
+  .cta:active{transform:scale(.98)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 0}
+  .step{position:relative;padding:12px 6px 10px;border-radius:12px;background:#17171a;border:1px solid #2c2c30;text-align:center}
+  .step .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--amber);color:#111;font-size:12px;font-weight:900}
+  .step .ic{display:block;font-size:26px;margin:6px 0 2px}
+  .step .t{font-size:13px;font-weight:700;line-height:1.35}
+  .step.soon{opacity:.6}
+  .step .soon{display:inline-block;margin-top:4px;font-size:10px;padding:1px 6px;border-radius:4px;background:#2a2a2e;color:#aaa}
 
-  /* メニュー */
-  h2{font-size:13px;color:#999;font-weight:normal;margin:18px 2px 8px}
-  .menu{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .item{display:flex;flex-direction:column;gap:4px;min-height:104px;padding:12px;border-radius:12px;
-        background:#17171a;border:1px solid #2c2c30;color:var(--white);text-decoration:none}
-  .item:active{background:#232328}
-  .item .ic{font-size:28px;line-height:1}
-  .item .t{font-size:16px;font-weight:700}
-  .item .d{font-size:12px;color:#9a9a9f;line-height:1.5}
-  .item.big{grid-column:1/3;flex-direction:row;align-items:center;gap:14px;min-height:88px;
-            background:var(--amber);border-color:var(--amber);color:#111}
-  .item.big .d{color:#4a3500}
-  .item.big .ic{font-size:36px}
-  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:#3a2a08;color:var(--amber);
-       vertical-align:2px;margin-left:4px;font-weight:normal}
+  /* ほかのあそびかた（小さく） */
+  h2{font-size:13px;color:#8a8a90;font-weight:normal;margin:26px 2px 8px}
+  .list{border-radius:12px;overflow:hidden;border:1px solid #2c2c30}
+  .row{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 14px;background:#141417;color:var(--white);text-decoration:none;border-top:1px solid #222226}
+  .row:first-child{border-top:0}
+  .row:active{background:#1e1e22}
+  .row .ic{flex:none;font-size:22px;width:28px;text-align:center}
+  .row .tx{flex:1;min-width:0}
+  .row .t{display:block;font-size:15px;font-weight:700}
+  .row .d{display:block;font-size:12px;color:#8f8f96;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .go{color:#555;font-size:18px}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:#3a2a08;color:var(--amber);vertical-align:2px;margin-left:4px;font-weight:normal}
 
   /* ホーム画面に追加の案内 */
   .install{position:relative;background:#132033;border:1px solid #2d4a73;border-radius:12px;padding:12px 40px 12px 14px;
@@ -83,13 +90,10 @@
 <body>
 <div class="wrap">
 
-  <div class="hero">
+  <div class="top">
     <img src="icons/icon-192.png" alt="">
-    <div style="flex:1;min-width:0">
-      <h1 class="led glow" data-i18n="idx.brand">ジャッチュ</h1>
-      <p data-i18n="idx.tagline">大門町 × 函館市電　待ち時間に、お店の電車を走らせよう</p>
-    </div>
-    <div id="langSw" style="flex:none;align-self:flex-start"></div>
+    <div class="brand led glow" data-i18n="idx.brand">ジャッチュ</div>
+    <div id="langSw"></div>
   </div>
 
   <!-- ホーム画面に追加の案内（追加ずみ・パソコンでは出ない） -->
@@ -102,44 +106,55 @@
     </div>
   </div>
 
-  <!-- いまの様子 -->
-  <a class="now led" href="board.html">
-    <div><div class="k" id="nextLabel">函館駅前 次の電車</div><div class="v glow" id="nextTram">—</div></div>
-    <div><div class="k" data-i18n="idx.open">いま入れるお店</div><div class="v glow ok" id="openShops">—</div></div>
-    <div class="more" data-i18n="idx.more">案内板を見る ›</div>
-  </a>
+  <!-- いちばん大事なところ -->
+  <section class="main">
+    <a class="scene" href="maker.html" aria-label="電車をつくる">
+      <svg viewBox="0 0 320 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="じぶんでデザインした電車">
+      <defs><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#20324f"/></pattern></defs>
+      <rect width="320" height="150" fill="url(#dots)"/>
+      <path d="M248 22 l3 -8 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3z" fill="#ffe14d"/><path d="M60 18 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2z" fill="#fff" opacity=".8"/>
+      <line x1="0" y1="34" x2="320" y2="34" stroke="#3b4d6b" stroke-width="1.5"/>
+      <g class="tram">
+        <path d="M146 52 L160 35 L174 52 M150 35 H170" stroke="#c9ced6" stroke-width="2.4" fill="none"/>
+        <rect x="58" y="49" width="204" height="9" rx="4" fill="#9aa3ae"/>
+        <rect x="50" y="55" width="220" height="62" rx="14" fill="#ffffff"/>
+        <g fill="#26364d"><rect x="66" y="63" width="22" height="17" rx="3"/><rect x="96" y="63" width="22" height="17" rx="3"/><rect x="126" y="63" width="22" height="17" rx="3"/><rect x="172" y="63" width="22" height="17" rx="3"/><rect x="202" y="63" width="22" height="17" rx="3"/><rect x="232" y="63" width="22" height="17" rx="3"/></g>
+        <rect x="152" y="62" width="16" height="44" rx="2" fill="#e7ebf0"/>
+        <rect x="50" y="85" width="220" height="3" fill="#d6dce4"/>
+        <!-- 自分でかいた絵（おえかき・ステッカー） -->
+        <path d="M70 101 q8 -10 16 0 t16 0 t16 0" stroke="#4fb8e8" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path d="M134 98 c-3 -5 -10 -2 -8 3 c1 3 8 7 8 7 c0 0 7 -4 8 -7 c2 -5 -5 -8 -8 -3z" fill="#ff5a7a"/>
+        <polygon points="190,92 192.6,98 199,98.4 194,102.4 195.7,108.6 190,105 184.3,108.6 186,102.4 181,98.4 187.4,98" fill="#ffd23f"/>
+        <text x="236" y="104" text-anchor="middle" font-size="11" font-weight="900" fill="#ff7a2f" font-family="'Hiragino Maru Gothic ProN','Kosugi Maru',sans-serif">ゆう号</text>
+        <circle cx="262" cy="98" r="3" fill="#fff6c0"/>
+        <rect x="70" y="116" width="50" height="7" rx="3" fill="#2a2f38"/><rect x="200" y="116" width="50" height="7" rx="3" fill="#2a2f38"/>
+        <circle cx="82" cy="125" r="5.5" fill="#3a3f48"/><circle cx="108" cy="125" r="5.5" fill="#3a3f48"/><circle cx="212" cy="125" r="5.5" fill="#3a3f48"/><circle cx="238" cy="125" r="5.5" fill="#3a3f48"/>
+      </g>
+      <rect x="0" y="130" width="320" height="3" fill="#7d8796"/>
+      <g fill="#3b4d6b"><rect x="0" y="134" width="8" height="4"/><rect x="14" y="134" width="8" height="4"/><rect x="28" y="134" width="8" height="4"/><rect x="42" y="134" width="8" height="4"/><rect x="56" y="134" width="8" height="4"/><rect x="70" y="134" width="8" height="4"/><rect x="84" y="134" width="8" height="4"/><rect x="98" y="134" width="8" height="4"/><rect x="112" y="134" width="8" height="4"/><rect x="126" y="134" width="8" height="4"/><rect x="140" y="134" width="8" height="4"/><rect x="154" y="134" width="8" height="4"/><rect x="168" y="134" width="8" height="4"/><rect x="182" y="134" width="8" height="4"/><rect x="196" y="134" width="8" height="4"/><rect x="210" y="134" width="8" height="4"/><rect x="224" y="134" width="8" height="4"/><rect x="238" y="134" width="8" height="4"/><rect x="252" y="134" width="8" height="4"/><rect x="266" y="134" width="8" height="4"/><rect x="280" y="134" width="8" height="4"/><rect x="294" y="134" width="8" height="4"/><rect x="308" y="134" width="8" height="4"/><rect x="322" y="134" width="8" height="4"/></g>
+      <!-- えんぴつ -->
+      <g transform="translate(272 40) rotate(35)"><rect x="0" y="0" width="9" height="34" rx="1.5" fill="#ffb020"/><rect x="0" y="0" width="9" height="6" fill="#ff7aa2"/><path d="M0 34 L4.5 44 L9 34Z" fill="#f2d3a0"/><path d="M3 40.5 L4.5 44 L6 40.5Z" fill="#333"/></g>
+    </svg>
+    </a>
+    <h1 data-i18n-html="idx.h1">じぶんの電車を<br><em>デザイン</em>して、走らせよう</h1>
+    <p data-i18n="idx.lead">色・もよう・おえかき・ステッカーで、世界に1台だけの電車を。できたらARで、机の上や函館の線路に走らせよう。</p>
+    <a class="cta" href="maker.html" data-i18n="idx.cta">🎨 電車をつくる</a>
 
-  <h2 data-i18n="idx.play">あそぶ</h2>
-  <div class="menu">
-    <a class="item big" href="mini.html">
-      <span class="ic">🚋</span>
-      <span><span class="t" data-i18n="idx.mini.t">お店の電車をARで走らせる</span><br>
-            <span class="d" data-i18n="idx.mini.d">机や床の上を、大門町のお店のラッピング電車が走ります</span></span>
-    </a>
-    <a class="item" href="rail.html">
-      <span class="ic">🛤</span><span class="t"><span data-i18n="idx.rail.t">本物の線路で</span><span class="tag" data-i18n="idx.beta">試作</span></span>
-      <span class="d" data-i18n="idx.rail.d">函館市電の線路にカメラを向けると電車が走る</span>
-    </a>
-    <a class="item" href="track.html">
-      <span class="ic">📦</span><span class="t" data-i18n="idx.track.t">段ボールの線路</span>
-      <span class="d" data-i18n="idx.track.d">紙や段ボールの線路の上を走る</span>
-    </a>
-    <a class="item" href="maker.html">
-      <span class="ic">🎨</span><span class="t" data-i18n="idx.maker.t">電車をつくる</span>
-      <span class="d" data-i18n="idx.maker.d">色・模様・文字・写真で、じぶんの電車に</span>
-    </a>
-    <a class="item" href="life-size.html">
-      <span class="ic">🚃</span><span class="t" data-i18n="idx.life.t">実物大の電車</span>
-      <span class="d" data-i18n="idx.life.d">全長13mの500形を目の前に出す</span>
-    </a>
-  </div>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><span class="ic">🎨</span><span class="t" data-i18n="idx.s1">デザインする</span></div>
+      <div class="step"><span class="n">2</span><span class="ic">📷</span><span class="t" data-i18n="idx.s2">ARで走らせる</span></div>
+      <div class="step soon"><span class="n">3</span><span class="ic">👀</span><span class="t" data-i18n="idx.s3">みんなに見せる</span><br><span class="soon" data-i18n="idx.soon">準備中</span></div>
+    </div>
+  </section>
 
-  <h2 data-i18n="idx.find">しらべる</h2>
-  <div class="menu">
-    <a class="item" href="board.html">
-      <span class="ic">🚏</span><span class="t" data-i18n="idx.board.t">案内板</span>
-      <span class="d" data-i18n="idx.board.d">電車の時刻・空席・限定メニュー・イベント</span>
-    </a>
+  <!-- ほかのあそびかた -->
+  <h2 data-i18n="idx.others">ほかのあそびかた</h2>
+  <div class="list">
+    <a class="row" href="mini.html"><span class="ic">🚋</span><span class="tx"><span class="t" data-i18n="idx.mini.t">お店の電車をARで走らせる</span><span class="d" data-i18n="idx.mini.d">机や床の上を、大門町のお店のラッピング電車が走ります</span></span><span class="go">›</span></a>
+    <a class="row" href="rail.html"><span class="ic">🛤</span><span class="tx"><span class="t"><span data-i18n="idx.rail.t">本物の線路で</span><span class="tag" data-i18n="idx.beta">試作</span></span><span class="d" data-i18n="idx.rail.d">函館市電の線路にカメラを向けると電車が走る</span></span><span class="go">›</span></a>
+    <a class="row" href="track.html"><span class="ic">📦</span><span class="tx"><span class="t" data-i18n="idx.track.t">段ボールの線路</span><span class="d" data-i18n="idx.track.d">紙や段ボールの線路の上を走る</span></span><span class="go">›</span></a>
+    <a class="row" href="life-size.html"><span class="ic">🚃</span><span class="tx"><span class="t" data-i18n="idx.life.t">実物大の電車</span><span class="d" data-i18n="idx.life.d">全長13mの500形を目の前に出す</span></span><span class="go">›</span></a>
+    <a class="row" href="board.html"><span class="ic">🚏</span><span class="tx"><span class="t" data-i18n="idx.board.t">時刻表・案内板</span><span class="d" data-i18n="idx.board.d">電車の時刻・空席・限定メニュー・イベント</span></span><span class="go">›</span></a>
   </div>
 
   <footer>
@@ -163,25 +178,9 @@
   const SHARE_SVG = `<svg class="share" viewBox="0 0 24 24" fill="none" stroke="#4fd8ff" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>`;
   JL.switcher($("langSw"));
 
-  /* ---------- いまの様子 ---------- */
-  // 次の電車（案内板と同じサンプルの時刻表：12分おきに 2・5・8・11 分）
-  const TRAM_OFFSETS = [2, 5, 8, 11];
-  function nextTram(){
-    const d = new Date(), m = d.getHours()*60 + d.getMinutes() + d.getSeconds()/60;
-    let best = Infinity;
-    for (const off of TRAM_OFFSETS){ let n = Math.ceil((m - off)/12)*12 + off; if (n - m < 0.02) n += 12; best = Math.min(best, n - m); }
-    $("nextLabel").textContent = JL.t("idx.next", { stop: JL.name("函館駅前") });
-    $("nextTram").innerHTML = best < 1 ? JL.t("min.soon") : JL.t("min.left", { n: Math.floor(best) });
-  }
-  function openShops(){
-    const shops = window.JATCHU_SHOPS || [];
-    $("openShops").innerHTML = JL.t("idx.count", { n: shops.filter(s => s.st !== "full").length });
-  }
   function iosText(){ $("instIos").innerHTML = JL.t("idx.ios", { icon: SHARE_SVG }); }
-  nextTram(); openShops(); iosText();
-  document.addEventListener("jatchu-lang", () => { nextTram(); openShops(); iosText(); });
-  setInterval(nextTram, 10000);
-  if (window.JATCHU_READY) window.JATCHU_READY.then(ok => { if (ok) openShops(); });
+  iosText();
+  document.addEventListener("jatchu-lang", iosText);
 
   /* ---------- ホーム画面に追加の案内 ---------- */
   const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },

@@ -58,6 +58,34 @@
     .preview { margin-top:4px; }
     .preview canvas { width:100%; height:auto; border-radius:6px; border:1px solid var(--line); display:block; }
     .hint { font-size:12px; color:#777; line-height:1.7; margin-top:8px; }
+    .startbar { display:flex; align-items:center; gap:10px; margin:6px 0 14px; padding:10px 12px; border-radius:12px; background:#fff6e5; font-size:13px; color:#6b4a00; }
+    .startbar span { flex:1; min-width:0; line-height:1.5; }
+    .startbar button { flex:none; min-height:40px; padding:0 12px; border:1px solid #f0c060; border-radius:20px; background:#fff; color:#6b4a00; font-size:13px; font-weight:700; cursor:pointer; }
+    /* ⑤ おえかき・ステッカー */
+    .tools { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .tool { min-height:46px; border:1px solid var(--line); border-radius:10px; background:#fff; font-size:15px; font-weight:700; color:var(--ink); cursor:pointer; }
+    .tool.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+    .views { display:flex; gap:6px; margin:10px 0 6px; }
+    .views button { flex:1; min-height:36px; border:1px solid var(--line); border-radius:18px; background:#fff; font-size:13px; color:#445; cursor:pointer; }
+    .views button.on { border-color:var(--ink); color:var(--ink); font-weight:700; box-shadow:inset 0 0 0 1px var(--ink); }
+    .edwrap { scroll-margin-top:calc(max(42svh, 240px) + 10px); position:relative; border-radius:8px; overflow:hidden; border:2px solid var(--ink); background:#ccc; }
+    #ed { display:block; width:100%; height:auto; touch-action:none; cursor:crosshair; }
+    .edwrap .tag { position:absolute; left:6px; top:6px; font-size:11px; background:rgba(0,0,0,.55); color:#fff; padding:2px 8px; border-radius:10px; pointer-events:none; }
+    .pcols { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+    .pc { width:34px; height:34px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--line); padding:0; cursor:pointer; }
+    .pc.on { box-shadow:0 0 0 3px var(--ink); }
+    .slider { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; color:#555; }
+    .slider input { flex:1; height:32px; }
+    .stk { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-top:10px; }
+    .stk button { aspect-ratio:1; border:1px solid var(--line); border-radius:10px; background:#f3f5f8; padding:4px; cursor:pointer; }
+    .stk button img { width:100%; height:100%; object-fit:contain; display:block; pointer-events:none; }
+    .stk button span { display:none; }
+    .edbtns { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .edbtns button { min-height:42px; padding:0 14px; border:1px solid var(--line); border-radius:21px; background:#fff; font-size:14px; color:var(--ink); cursor:pointer; }
+    .edbtns button.warn { color:#c0392b; }
+    .edbtns button:disabled { opacity:.4; }
+    .selbox { margin-top:10px; padding:10px 12px; border-radius:10px; background:#f3f5f8; }
+
     .sec .row:has(.swatches) { flex-wrap:nowrap; }
     .swatches { flex-wrap:nowrap !important; gap:7px !important; }
 
@@ -103,16 +131,20 @@
 <div class="panel">
 
   <div class="sec">
+    <div class="startbar">
+      <span>まっさらな白い電車から、自由にデザインしよう</span>
+      <button id="resetDesign">🔄 白い電車にもどす</button>
+    </div>
     <h2>① 色<small>車体の色と、模様・帯の色</small></h2>
     <div class="row" style="margin-bottom:10px">
       <label class="small">車体</label>
       <div class="swatches" id="sw1"></div>
-      <input type="color" id="c1" value="#1d4e89">
+      <input type="color" id="c1" value="#ffffff">
     </div>
     <div class="row">
       <label class="small">模様</label>
       <div class="swatches" id="sw2"></div>
-      <input type="color" id="c2" value="#f2c14e">
+      <input type="color" id="c2" value="#cfd6de">
     </div>
   </div>
 
@@ -123,10 +155,10 @@
 
   <div class="sec">
     <h2>③ 文字<small>電車の名前やメッセージ</small></h2>
-    <input type="text" id="txt" maxlength="14" value="函館だいすき号" placeholder="例：ゆう号">
+    <input type="text" id="txt" maxlength="14" value="" placeholder="例：ゆう号（なくてもOK）">
     <div class="row" style="margin-top:10px">
       <label class="small">文字の色</label>
-      <input type="color" id="c3" value="#ffffff">
+      <input type="color" id="c3" value="#1c2a44">
     </div>
     <div class="opts" id="fonts" style="margin-top:10px"></div>
   </div>
@@ -141,10 +173,40 @@
   </div>
 
   <div class="sec" style="border-bottom:none">
-    <h2>車体の横の見本</h2>
-    <div class="preview"><canvas id="pv" width="943" height="200"></canvas></div>
+    <h2>⑤ おえかき・ステッカー<small>車体の横に、指でかいたり貼ったり</small></h2>
+    <div class="tools" id="tools">
+      <button class="tool on" data-m="pen">✏️ ペン</button>
+      <button class="tool" data-m="eraser">🧽 消しゴム</button>
+      <button class="tool" data-m="sticker">⭐ ステッカー</button>
+    </div>
+    <div class="views" id="views">
+      <button data-v="0" class="on">◀ 左半分</button><button data-v="1">右半分 ▶</button><button data-v="2">全体</button>
+    </div>
+    <div class="edwrap"><canvas id="ed" width="1000" height="422"></canvas><span class="tag" id="edTag">車体の横（両側に同じ絵が入ります）</span></div>
+
+    <div id="penBox">
+      <div class="pcols" id="pcols"></div>
+      <div class="slider"><span id="wLabel">太さ</span><input type="range" id="pw" min="4" max="70" value="16"><span id="pwV">16</span></div>
+    </div>
+
+    <div id="stkBox" hidden>
+      <p class="hint" style="margin-top:8px">下のステッカーを押すと、車体に貼られます。指で動かせます（2本指で大きさ・向き）。</p>
+      <div class="stk" id="stk"></div>
+      <div class="selbox" id="selBox" hidden>
+        <div class="slider">大きさ<input type="range" id="sSize" min="40" max="380"></div>
+        <div class="slider">向き<input type="range" id="sRot" min="-180" max="180"></div>
+        <div class="edbtns" style="margin-top:6px">
+          <button id="sFront">⬆ 前に出す</button><button id="sCopy">⧉ もう1つ</button><button class="warn" id="sDel">🗑 はがす</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="edbtns">
+      <button id="undo" disabled>↩ ひとつもどす</button>
+      <button class="warn" id="clearArt">🗑 おえかきとステッカーを全部消す</button>
+    </div>
     <p class="hint">
-      できたら上の「📷 ARで走らせる」を押すと、机や床の上をじぶんの電車が走ります。<br>
+      できたら上の「📷 ARで走らせる」を押すと、机や床の上をじぶんの電車が走ります。
     </p>
   </div>
 </div>
@@ -162,8 +224,8 @@
 <script src="lang.js"></script>
 <script>
 /* ---------- 設定 ---------- */
-const PRESET1 = ["#1d4e89","#b22222","#2e7d32","#6a1b9a","#222222","#f5f0e6"];
-const PRESET2 = ["#f2c14e","#ffffff","#ff7aa2","#4fd8ff","#c9a14a","#e65100"];
+const PRESET1 = ["#ffffff","#1d4e89","#b22222","#2e7d32","#222222","#f2c14e"];
+const PRESET2 = ["#cfd6de","#f2c14e","#ff7aa2","#4fd8ff","#e65100","#1d4e89"];
 const PATTERNS = [["none","なし"],["stripe","ストライプ"],["dots","水玉"],["seigaiha","青海波"],["check","チェック"],["wave","波"]];
 const FONTS = [["'Noto Sans JP',sans-serif","ゴシック",900],["'Noto Serif JP',serif","明朝",700],["'Kosugi Maru',sans-serif","まる文字",400]];
 
@@ -171,7 +233,9 @@ const FONTS = [["'Noto Sans JP',sans-serif","ゴシック",900],["'Noto Serif JP
 const SIDES = [[81,103,1966,501],[81,605,1966,1003]];
 const ENDS  = [[8,1092,375,1515],[416,1092,784,1515]];
 
-const S = { c1:"#1d4e89", c2:"#f2c14e", c3:"#ffffff", pat:"seigaiha", font:0, text:"函館だいすき号", photo:null };
+// 最初は「まっさらな白い電車」。ここから自由にデザインする
+const DEFAULT = { c1:"#ffffff", c2:"#cfd6de", c3:"#1c2a44", pat:"none", font:0, text:"", photo:null };
+const S = { ...DEFAULT };
 
 /* ---------- 部品 ---------- */
 const $ = id => document.getElementById(id);
@@ -203,6 +267,16 @@ $("photo").onchange = e => {
   const img = new Image();
   img.onload = () => { S.photo = img; $("rmPhoto").hidden = false; update(); };
   img.src = URL.createObjectURL(f);
+};
+// 「白い電車にもどす」：色・模様・文字・写真を最初にもどす（おえかき・ステッカーはそのまま）
+$("resetDesign").onclick = () => {
+  if (!confirm("色・模様・文字・写真を、白い電車にもどしますか？（おえかきとステッカーは残ります）")) return;
+  Object.assign(S, DEFAULT);
+  $("c1").value = S.c1; $("c2").value = S.c2; $("c3").value = S.c3; $("txt").value = ""; $("photo").value = ""; $("rmPhoto").hidden = true;
+  swatches($("sw1"), PRESET1, "c1", $("c1")); swatches($("sw2"), PRESET2, "c2", $("c2"));
+  options($("pats"), PATTERNS, "pat", 1); options($("fonts"), FONTS, "font", 1);
+  $("fonts").querySelectorAll(".opt").forEach((b,i)=> b.style.fontFamily = FONTS[i][0]);
+  update();
 };
 $("rmPhoto").onclick = () => { S.photo = null; $("photo").value=""; $("rmPhoto").hidden = true; update(); };
 
@@ -267,11 +341,10 @@ const base = new Image(); base.src = "wrap-base.jpg?v=1";
 function paint(){
   if (base.complete && base.naturalWidth) tg.drawImage(base,0,0,2048,2048);
   else { tg.fillStyle="#3a2a24"; tg.fillRect(0,0,2048,2048); }
-  for (const [x0,y0,x1,y1] of SIDES){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawSide(tg,x1-x0,y1-y0); tg.restore(); }
+  paintSide();                                                   // 車体の横（デザイン＋おえかき＋ステッカー）
+  for (const [x0,y0] of SIDES) tg.drawImage(side, x0, y0);
   for (const [x0,y0,x1,y1] of ENDS){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawEnd(tg,x1-x0,y1-y0); tg.restore(); }
-  // 見本（側面）
-  const pv = $("pv"), pg = pv.getContext("2d"), [x0,y0,x1,y1] = SIDES[0];
-  pg.drawImage(tex, x0,y0,x1-x0,y1-y0, 0,0,pv.width,pv.height);
+  drawEditor();
   $("ttl").textContent = (S.text || "じぶんの電車");
 }
 
@@ -297,6 +370,7 @@ async function apply(){
   if (again){ again = false; apply(); }
 }
 let update = function(){
+  baseDirty = true;
   paint();
   clearTimeout(timer); timer = setTimeout(apply, 250);
 }
@@ -372,6 +446,258 @@ $("toTrack").onclick = () => {
   if (!saved) { alert("電車の絵を保存できませんでした（プライベートブラウズでは使えません）"); return; }
   location.href = "track.html?shop=custom";
 };
+
+
+/* =========================================================
+   ⑤ おえかき・ステッカー
+   車体の横（1885×398）と同じ大きさの絵を重ねて、両側の車体に貼る
+   ========================================================= */
+const SW = SIDES[0][2] - SIDES[0][0], SH = SIDES[0][3] - SIDES[0][1];
+const mk = (w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
+const sideBase = mk(SW, SH), side = mk(SW, SH), art = mk(SW, SH);
+const sbg = sideBase.getContext("2d"), sdg = side.getContext("2d"), ag = art.getContext("2d");
+let baseDirty = true;
+
+// ---- ステッカーの絵（オリジナルのイラスト。100×100） ----
+function starPts(cx, cy, R, r, n = 5, rot = -90){
+  const p = []; for (let i = 0; i < n * 2; i++){ const a = (rot + i * 180 / n) * Math.PI / 180, rr = i % 2 ? r : R; p.push((cx + rr * Math.cos(a)).toFixed(1) + "," + (cy + rr * Math.sin(a)).toFixed(1)); }
+  return p.join(" ");
+}
+const lights = (() => { let d = ""; const xs = [16,22,27,33,38,44,49,55,60,66,71,77,82, 25,35,46,57,68,79, 30,41,52,63,74]; xs.forEach((x, i) => {
+  const y = i < 13 ? 66 + (i % 3) * 3 : i < 19 ? 74 + (i % 2) * 2 : 80 + (i % 2) * 2; d += `<circle cx="${x}" cy="${y}" r="${i % 4 ? 1.6 : 2.2}"/>`; }); return d; })();
+const STICKERS = [
+  ["ika", "イカ", `<path d="M36 22 L16 34 L36 40Z M64 22 L84 34 L64 40Z" fill="#f7efe6" stroke="#d9a79a" stroke-width="2"/>
+    <path d="M50 5 C68 22 71 42 66 60 L34 60 C29 42 32 22 50 5Z" fill="#f7efe6" stroke="#d9a79a" stroke-width="2"/>
+    <g fill="none" stroke="#f7efe6" stroke-width="6" stroke-linecap="round"><path d="M37 60 Q31 74 37 86"/><path d="M44 60 Q41 78 38 95"/><path d="M50 60 Q53 78 50 94"/><path d="M56 60 Q60 78 63 95"/><path d="M63 60 Q70 74 63 86"/></g>
+    <circle cx="42" cy="48" r="5" fill="#222"/><circle cx="58" cy="48" r="5" fill="#222"/><circle cx="43.5" cy="46.5" r="1.6" fill="#fff"/><circle cx="59.5" cy="46.5" r="1.6" fill="#fff"/>
+    <circle cx="37" cy="56" r="3.5" fill="#f5a3b1"/><circle cx="63" cy="56" r="3.5" fill="#f5a3b1"/><circle cx="46" cy="22" r="2.5" fill="#e9b7a8"/><circle cx="55" cy="30" r="2" fill="#e9b7a8"/>`],
+  ["yakei", "夜景", `<defs><clipPath id="c"><circle cx="50" cy="50" r="46"/></clipPath></defs><g clip-path="url(#c)">
+    <rect width="100" height="100" fill="#1b2a5e"/><circle cx="74" cy="22" r="8" fill="#fff3b0"/>
+    <path d="M0 64 L30 30 L42 40 L56 26 L100 64 Z" fill="#0b1433"/><rect y="62" width="100" height="40" fill="#0e1a3d"/>
+    <g fill="#ffd84a">${lights}</g><rect y="88" width="100" height="12" fill="#22427a"/></g>
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#ffd84a" stroke-width="3"/>`],
+  ["goryokaku", "五稜郭", `<polygon points="${starPts(50,52,48,30)}" fill="#7cc6ea"/><polygon points="${starPts(50,52,38,24)}" fill="#6fbf5a"/>
+    <polygon points="${starPts(50,52,38,24)}" fill="none" stroke="#3f8f3a" stroke-width="2"/><rect x="43" y="46" width="14" height="10" fill="#fff"/><path d="M41 47 L50 40 L59 47Z" fill="#555"/>`],
+  ["renga", "赤レンガ倉庫", `<path d="M6 40 L22 24 L38 40 L54 24 L70 40 L86 24 L94 32 L94 86 L6 86Z" fill="#b5452f"/>
+    <g stroke="#d9765e" stroke-width="1.5"><path d="M6 52 H94 M6 64 H94 M6 76 H94"/></g>
+    <path d="M6 40 L22 24 L38 40 L54 24 L70 40 L86 24 L94 32" fill="none" stroke="#5b2a20" stroke-width="4" stroke-linejoin="round"/>
+    <g fill="#5b2a20"><path d="M14 86 V68 A8 8 0 0 1 30 68 V86Z"/><path d="M46 86 V68 A8 8 0 0 1 62 68 V86Z"/><path d="M76 86 V70 A6 6 0 0 1 88 70 V86Z"/></g><rect x="4" y="86" width="92" height="5" fill="#7a3324"/>`],
+  ["tram", "市電", `<path d="M44 26 L50 12 L56 26 M45 12 H55" stroke="#555" stroke-width="2.5" fill="none"/><rect x="10" y="26" width="80" height="50" rx="10" fill="#ffb020"/>
+    <rect x="10" y="56" width="80" height="20" rx="0" fill="#2e7d4f"/><rect x="10" y="66" width="80" height="10" rx="5" fill="#2e7d4f"/>
+    <g fill="#1d2b3d"><rect x="17" y="33" width="14" height="14" rx="2"/><rect x="36" y="33" width="14" height="14" rx="2"/><rect x="55" y="33" width="14" height="14" rx="2"/><rect x="74" y="33" width="10" height="14" rx="2"/></g>
+    <circle cx="28" cy="82" r="6" fill="#333"/><circle cx="72" cy="82" r="6" fill="#333"/><rect x="2" y="88" width="96" height="4" rx="2" fill="#888"/>`],
+  ["kamome", "カモメ", `<path d="M6 50 Q28 26 50 46 Q72 26 94 50 Q72 40 50 58 Q28 40 6 50Z" fill="#fff" stroke="#556" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M6 50 Q14 44 20 44" stroke="#333" stroke-width="3" fill="none"/><path d="M94 50 Q86 44 80 44" stroke="#333" stroke-width="3" fill="none"/>
+    <circle cx="50" cy="52" r="7" fill="#fff" stroke="#556" stroke-width="2"/><path d="M50 56 L46 64 L54 64Z" fill="#ffb020"/>`],
+  ["ship", "船", `<path d="M8 62 H92 L80 84 H20Z" fill="#1d4e89"/><rect x="24" y="44" width="52" height="18" fill="#fff" stroke="#9aa" stroke-width="1.5"/>
+    <g fill="#4fa3d9"><circle cx="34" cy="53" r="3"/><circle cx="46" cy="53" r="3"/><circle cx="58" cy="53" r="3"/><circle cx="70" cy="53" r="3"/></g>
+    <rect x="40" y="26" width="14" height="18" fill="#d33a2c"/><rect x="40" y="26" width="14" height="5" fill="#222"/>
+    <path d="M4 90 Q16 84 28 90 T52 90 T76 90 T100 90" stroke="#4fa3d9" stroke-width="4" fill="none"/>`],
+  ["sakura", "さくら", `<g fill="#ffb7c9" stroke="#e97a99" stroke-width="2">${[0,72,144,216,288].map(a=>`<path transform="rotate(${a} 50 50)" d="M50 50 C36 36 38 14 46 10 L50 16 L54 10 C62 14 64 36 50 50Z"/>`).join("")}</g>
+    <circle cx="50" cy="50" r="7" fill="#ffe066"/>`],
+  ["heart", "ハート", `<path d="M50 88 C20 66 6 50 10 32 C14 16 36 10 50 28 C64 10 86 16 90 32 C94 50 80 66 50 88Z" fill="#ff5a7a"/><ellipse cx="30" cy="32" rx="7" ry="4" fill="#fff" opacity=".6" transform="rotate(-30 30 32)"/>`],
+  ["star", "星", `<polygon points="${starPts(50,54,46,20)}" fill="#ffd23f" stroke="#e6a800" stroke-width="3" stroke-linejoin="round"/>`],
+  ["kira", "キラキラ", `<path d="M40 10 Q44 36 70 40 Q44 44 40 70 Q36 44 10 40 Q36 36 40 10Z" fill="#ffe14d"/><path d="M76 56 Q78 70 90 72 Q78 74 76 88 Q74 74 62 72 Q74 70 76 56Z" fill="#fff6b0"/>`],
+  ["badge", "函館", `<circle cx="50" cy="50" r="46" fill="#ffb020"/><circle cx="50" cy="50" r="38" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="4 4"/>
+    <text x="50" y="62" text-anchor="middle" font-size="32" font-weight="900" fill="#fff" font-family="'Noto Sans JP','Hiragino Sans',sans-serif">函館</text>`],
+];
+// 絵を画像にして、まわりに白いふち（シールっぽく）をつける
+const stkImg = {};
+function loadSticker([id, , svg]){
+  return new Promise(ok => {
+    const img = new Image();
+    img.onload = () => {
+      const N = 256, pad = 14, c = mk(N + pad * 2, N + pad * 2), g = c.getContext("2d");
+      const sil = mk(N, N), sg = sil.getContext("2d");
+      sg.drawImage(img, 0, 0, N, N); sg.globalCompositeOperation = "source-in"; sg.fillStyle = "#fff"; sg.fillRect(0, 0, N, N);
+      for (let a = 0; a < 360; a += 30){ const r = a * Math.PI / 180; g.drawImage(sil, pad + Math.cos(r) * 9, pad + Math.sin(r) * 9); }
+      g.shadowColor = "rgba(0,0,0,.18)"; g.shadowBlur = 0;
+      g.drawImage(img, pad, pad, N, N);
+      stkImg[id] = c; ok();
+    };
+    img.onerror = ok;
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="256" height="256">${svg}</svg>`);
+  });
+}
+
+// ---- 状態 ----
+const ART = { mode: "pen", view: 0, color: "#111111", width: 16, strokes: [], stickers: [], sel: null, history: [] };
+const PEN_COLORS = ["#ffffff", "#111111", "#ff3b30", "#ffb020", "#ffe14d", "#3dbb4f", "#4fd8ff", "#1d4e89", "#a259ff", "#ff7aa2"];
+const VIEWS = [[0, 0.5], [0.5, 1], [0, 1]];
+
+// ---- 車体の横を組み立てる（デザイン → おえかき → ステッカー） ----
+function paintSide(){
+  if (baseDirty){ sbg.clearRect(0, 0, SW, SH); drawSide(sbg, SW, SH); baseDirty = false; }
+  sdg.clearRect(0, 0, SW, SH);
+  sdg.drawImage(sideBase, 0, 0); sdg.drawImage(art, 0, 0);
+  for (const k of ART.stickers){
+    const im = stkImg[k.kind]; if (!im) continue;
+    sdg.save(); sdg.translate(k.x, k.y); sdg.rotate(k.r * Math.PI / 180);
+    const s = k.s * (im.width / 256); sdg.drawImage(im, -s / 2, -s / 2, s, s); sdg.restore();
+  }
+}
+function drawStroke(g, st){
+  g.save();
+  g.globalCompositeOperation = st.erase ? "destination-out" : "source-over";
+  g.strokeStyle = st.color; g.fillStyle = st.color; g.lineWidth = st.w; g.lineCap = "round"; g.lineJoin = "round";
+  const p = st.pts;
+  if (p.length === 1){ g.beginPath(); g.arc(p[0][0], p[0][1], st.w / 2, 0, 7); g.fill(); }
+  else { g.beginPath(); g.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) g.lineTo(p[i][0], p[i][1]); g.stroke(); }
+  g.restore();
+}
+function redrawArt(){ ag.clearRect(0, 0, SW, SH); for (const st of ART.strokes) drawStroke(ag, st); }
+
+// ---- 画面の絵（編集用） ----
+const ed = $("ed"), eg = ed.getContext("2d");
+function viewRect(){ const [a, b] = VIEWS[ART.view]; return { x: a * SW, w: (b - a) * SW }; }
+function drawEditor(){
+  const v = viewRect();
+  ed.height = Math.round(ed.width * SH / v.w);
+  eg.drawImage(side, v.x, 0, v.w, SH, 0, 0, ed.width, ed.height);
+  const k = ART.sel;
+  if (k && ART.mode === "sticker"){
+    const sc = ed.width / v.w, s = k.s * 1.1 * sc;
+    eg.save(); eg.translate((k.x - v.x) * sc, k.y * sc); eg.rotate(k.r * Math.PI / 180);
+    eg.setLineDash([10, 6]); eg.lineWidth = 3; eg.strokeStyle = "#1a73e8"; eg.strokeRect(-s / 2, -s / 2, s, s); eg.restore();
+  }
+}
+function toSide(e){
+  const r = ed.getBoundingClientRect(), v = viewRect();
+  return [v.x + (e.clientX - r.left) / r.width * v.w, (e.clientY - r.top) / r.height * SH];
+}
+// 画面だけ描き直す（軽い）／3D にも反映（重いので、指をはなしたとき）
+const quick = () => { paintSide(); drawEditor(); };
+const commit = () => update();
+
+function pushHistory(){
+  ART.history.push(JSON.stringify({ strokes: ART.strokes, stickers: ART.stickers }));
+  if (ART.history.length > 40) ART.history.shift();
+  $("undo").disabled = false;
+}
+$("undo").onclick = () => {
+  const h = ART.history.pop(); if (!h) return;
+  const o = JSON.parse(h); ART.strokes = o.strokes; ART.stickers = o.stickers; ART.sel = null;
+  redrawArt(); selUI(); commit(); $("undo").disabled = !ART.history.length;
+};
+$("clearArt").onclick = () => {
+  if (!ART.strokes.length && !ART.stickers.length) return;
+  if (!confirm("おえかきとステッカーを全部消しますか？")) return;
+  pushHistory(); ART.strokes = []; ART.stickers = []; ART.sel = null; redrawArt(); selUI(); commit();
+};
+
+// ---- 道具の切り替え ----
+$("tools").onclick = e => { const b = e.target.closest(".tool"); if (!b) return; setMode(b.dataset.m); };
+function setMode(m){
+  ART.mode = m; showEditor();
+  document.querySelectorAll(".tool").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+  $("penBox").hidden = m === "sticker"; $("stkBox").hidden = m !== "sticker";
+  $("wLabel").textContent = m === "eraser" ? "消す太さ" : "太さ";
+  $("pcols").style.display = m === "eraser" ? "none" : "";
+  if (m !== "sticker") ART.sel = null;
+  selUI(); drawEditor();
+}
+$("views").onclick = e => { const b = e.target.closest("button"); if (!b) return;
+  ART.view = +b.dataset.v; document.querySelectorAll("#views button").forEach(x => x.classList.toggle("on", x === b)); drawEditor(); };
+$("pcols").innerHTML = PEN_COLORS.map(c => `<button class="pc" style="background:${c}" data-c="${c}" aria-label="${c}"></button>`).join("") +
+  `<input type="color" id="pcCustom" value="#ffffff" aria-label="ほかの色">`;
+const markPen = () => document.querySelectorAll(".pc").forEach(b => b.classList.toggle("on", b.dataset.c === ART.color));
+$("pcols").onclick = e => { const b = e.target.closest(".pc"); if (!b) return; ART.color = b.dataset.c; markPen(); };
+$("pcCustom").oninput = e => { ART.color = e.target.value; markPen(); };
+$("pw").oninput = e => { ART.width = +e.target.value; $("pwV").textContent = e.target.value; };
+markPen();
+
+// ---- ステッカー ----
+$("stk").innerHTML = STICKERS.map(([id, name]) => `<button data-k="${id}" title="${name}" aria-label="${name}"><span>${name}</span></button>`).join("");
+Promise.all(STICKERS.map(loadSticker)).then(() => {
+  document.querySelectorAll("#stk button").forEach(b => { const c = stkImg[b.dataset.k]; if (c){ const i = new Image(); i.src = c.toDataURL(); b.prepend(i); } });
+  quick();
+});
+$("stk").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const v = viewRect();
+  pushHistory();
+  const k = { kind: b.dataset.k, x: v.x + v.w * (0.3 + Math.random() * 0.4), y: SH * (0.35 + Math.random() * 0.3), s: 150, r: 0 };
+  ART.stickers.push(k); ART.sel = k; selUI(); commit();
+  showEditor();
+};
+// 編集の絵が上の電車のモデルに隠れていたら、見えるところまで動かす
+function showEditor(){
+  const r = ed.getBoundingClientRect(), top = document.querySelector('.viewer').getBoundingClientRect().bottom;
+  if (r.top < top || r.bottom > innerHeight - 120) ed.parentElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+function selUI(){
+  const k = ART.sel; $("selBox").hidden = !k;
+  if (k){ $("sSize").value = k.s; $("sRot").value = k.r; }
+}
+$("sSize").oninput = e => { if (!ART.sel) return; ART.sel.s = +e.target.value; quick(); };
+$("sRot").oninput = e => { if (!ART.sel) return; ART.sel.r = +e.target.value; quick(); };
+["sSize", "sRot"].forEach(id => { $(id).onpointerdown = () => ART.sel && pushHistory(); $(id).onchange = commit; });
+$("sDel").onclick = () => { if (!ART.sel) return; pushHistory(); ART.stickers = ART.stickers.filter(k => k !== ART.sel); ART.sel = null; selUI(); commit(); };
+$("sFront").onclick = () => { if (!ART.sel) return; pushHistory(); ART.stickers = ART.stickers.filter(k => k !== ART.sel).concat(ART.sel); commit(); };
+$("sCopy").onclick = () => { if (!ART.sel) return; pushHistory(); const k = { ...ART.sel, x: ART.sel.x + 60, y: ART.sel.y + 20 }; ART.stickers.push(k); ART.sel = k; selUI(); commit(); };
+function hit(x, y){
+  for (let i = ART.stickers.length - 1; i >= 0; i--){
+    const k = ART.stickers[i], a = -k.r * Math.PI / 180, dx = x - k.x, dy = y - k.y;
+    const lx = dx * Math.cos(a) - dy * Math.sin(a), ly = dx * Math.sin(a) + dy * Math.cos(a);
+    if (Math.abs(lx) < k.s * 0.55 && Math.abs(ly) < k.s * 0.55) return k;
+  }
+  return null;
+}
+
+// ---- 指の動き ----
+const ptrs = new Map(); let cur = null, gesture = null;
+ed.addEventListener("pointerdown", e => {
+  ed.setPointerCapture(e.pointerId);
+  const p = toSide(e); ptrs.set(e.pointerId, p);
+  if (ART.mode === "sticker"){
+    if (ptrs.size === 1){
+      const k = hit(...p);
+      ART.sel = k; selUI();
+      if (k){ pushHistory(); gesture = { k, sx: k.x, sy: k.y, px: p[0], py: p[1] }; }
+      drawEditor();
+    } else if (ptrs.size === 2 && ART.sel){                // 2本指：大きさと向き
+      const [a, b] = [...ptrs.values()];
+      gesture = { k: ART.sel, two: true, d0: Math.hypot(b[0] - a[0], b[1] - a[1]), a0: Math.atan2(b[1] - a[1], b[0] - a[0]), s0: ART.sel.s, r0: ART.sel.r };
+    }
+    return;
+  }
+  if (ptrs.size > 1){ cur = null; return; }
+  pushHistory();
+  cur = { erase: ART.mode === "eraser", color: ART.color, w: ART.mode === "eraser" ? ART.width * 2 : ART.width, pts: [p] };
+  ART.strokes.push(cur); drawStroke(ag, cur); quick();
+});
+ed.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) return;
+  const p = toSide(e); ptrs.set(e.pointerId, p);
+  if (ART.mode === "sticker"){
+    if (!gesture) return;
+    const k = gesture.k;
+    if (gesture.two && ptrs.size >= 2){
+      const [a, b] = [...ptrs.values()], d = Math.hypot(b[0] - a[0], b[1] - a[1]), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+      k.s = Math.max(40, Math.min(380, gesture.s0 * d / gesture.d0));
+      k.r = Math.round(((gesture.r0 + (ang - gesture.a0) * 180 / Math.PI) + 540) % 360 - 180);
+    } else if (!gesture.two){
+      k.x = Math.max(0, Math.min(SW, gesture.sx + p[0] - gesture.px)); k.y = Math.max(0, Math.min(SH, gesture.sy + p[1] - gesture.py));
+    }
+    selUI(); quick(); return;
+  }
+  if (!cur) return;
+  const last = cur.pts[cur.pts.length - 1];
+  if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 2) return;
+  cur.pts.push(p);
+  ag.save(); ag.globalCompositeOperation = cur.erase ? "destination-out" : "source-over";
+  ag.strokeStyle = cur.color; ag.lineWidth = cur.w; ag.lineCap = "round";
+  ag.beginPath(); ag.moveTo(last[0], last[1]); ag.lineTo(p[0], p[1]); ag.stroke(); ag.restore();
+  quick();
+});
+const end = e => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (ptrs.size) { if (gesture && gesture.two) gesture = null; return; }
+  if (cur || gesture) commit();
+  cur = null; gesture = null;
+};
+ed.addEventListener("pointerup", end); ed.addEventListener("pointercancel", end);
 
 base.onload = update;
 document.fonts && document.fonts.ready.then(update);

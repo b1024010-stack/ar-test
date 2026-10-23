@@ -36,7 +36,7 @@
                     "⚠ 선로나 차도에 들어가지 말고, 보도나 안전지대에서 사용하세요."),
 
     // トップ（index.html）
-    "idx.title":   L("ジャッチュ | 大門町×函館市電 AR", "Jatchu | Daimon × Hakodate Tram AR", "Jatchu | 大門町×函館市電 AR", "Jatchu | 大门町×函馆市电 AR", "자추 | 다이몬초×하코다테 시덴 AR"),
+    "idx.title":   L("ジャッチュ | じぶんの電車をデザインして走らせよう", "Jatchu | Design your own tram and make it run", "Jatchu | 設計自己的電車讓它跑起來", "Jatchu | 设计自己的电车让它跑起来", "자추 | 나만의 전차를 디자인해서 달리게 하자"),
     "idx.brand":   L("ジャッチュ", "Jatchu", "Jatchu", "Jatchu", "자추"),
     "idx.tagline": L("大門町 × 函館市電　待ち時間に、お店の電車を走らせよう",
                      "Daimon × Hakodate Tram — run a local shop's tram while you wait",
@@ -69,10 +69,22 @@
     "idx.maker.d": L("色・模様・文字・写真で、じぶんの電車に", "Colors, patterns, text and photos — make it yours", "用顏色・圖案・文字・照片做出自己的電車", "用颜色・图案・文字・照片做出自己的电车", "색・무늬・글자・사진으로 나만의 전차를"),
     "idx.life.t":  L("実物大の電車", "Life-size tram", "實物大小的電車", "实物大小的电车", "실물 크기 전차"),
     "idx.life.d":  L("全長13mの500形を目の前に出す", "Place the 13 m Type 500 tram right in front of you", "把全長13公尺的500型放在眼前", "把全长13米的500型放在眼前", "길이 13m의 500형을 눈앞에"),
-    "idx.board.t": L("案内板", "Info board", "資訊看板", "信息看板", "안내판"),
+    "idx.board.t": L("時刻表・案内板", "Timetable & info", "時刻表・資訊看板", "时刻表・信息看板", "시각표・안내판"),
     "idx.board.d": L("電車の時刻・空席・限定メニュー・イベント", "Tram times, open seats, specials and events", "電車時刻・空位・限定菜單・活動", "电车时刻・空位・限定菜单・活动", "전차 시각・빈자리・한정 메뉴・이벤트"),
     "idx.sample":  L("※ 時刻・お店・イベントの一部はサンプルです。", "* Some times, shops and events are samples.", "※ 部分時刻・店家・活動為範例。", "※ 部分时刻・店家・活动为示例。", "※ 시각・가게・이벤트의 일부는 샘플입니다."),
     "idx.qr":      L("🖨 QRコードの貼り紙をつくる（運営用）", "🖨 Print QR posters (for staff)", "🖨 製作QR海報（工作人員用）", "🖨 制作QR海报（工作人员用）", "🖨 QR 포스터 만들기 (운영자용)"),
+    "idx.h1":      L("じぶんの電車を<br><em>デザイン</em>して、走らせよう", "<em>Design</em> your own tram,<br>then make it run", "<em>設計</em>你自己的電車，<br>讓它跑起來", "<em>设计</em>你自己的电车，<br>让它跑起来", "나만의 전차를 <em>디자인</em>하고<br>달리게 하자"),
+    "idx.lead":    L("色・もよう・おえかき・ステッカーで、世界に1台だけの電車を。できたらARで、机の上や函館の線路に走らせよう。",
+                     "Colors, patterns, drawings and stickers — make a one-of-a-kind tram. Then run it in AR on your table or on Hakodate's tram tracks.",
+                     "用顏色・圖案・塗鴉・貼紙，做出世界上唯一的電車。完成後用AR讓它在桌上或函館的軌道上奔跑。",
+                     "用颜色・图案・涂鸦・贴纸，做出世界上唯一的电车。完成后用AR让它在桌上或函馆的轨道上奔跑。",
+                     "색・무늬・그림・스티커로 세상에 하나뿐인 전차를 만들어요. 완성하면 AR로 책상 위나 하코다테 선로 위를 달리게 해 보세요."),
+    "idx.cta":     L("🎨 電車をつくる", "🎨 Design a tram", "🎨 製作電車", "🎨 制作电车", "🎨 전차 만들기"),
+    "idx.s1":      L("デザインする", "Design", "設計", "设计", "디자인"),
+    "idx.s2":      L("ARで走らせる", "Run it in AR", "用AR奔跑", "用AR奔跑", "AR로 달리기"),
+    "idx.s3":      L("みんなに見せる", "Show everyone", "分享給大家", "分享给大家", "모두에게 보여주기"),
+    "idx.soon":    L("準備中", "Coming soon", "準備中", "准备中", "준비 중"),
+    "idx.others":  L("ほかのあそびかた", "More ways to play", "其他玩法", "其他玩法", "다른 놀이"),
 
     // 案内板（board.html）
     "bd.title":    L("大門町 案内板", "Daimon Info Board", "大門町 資訊看板", "大门町 信息看板", "다이몬초 안내판"),
