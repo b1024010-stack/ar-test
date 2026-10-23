@@ -97,6 +97,9 @@
     .dock button { display:block; width:100%; max-width:528px; margin:0 auto; min-height:50px; border:2px solid var(--ink);
                    border-radius:12px; background:#fff; color:var(--ink); font-size:16px; font-weight:700; }
     .dock button:active { background:var(--ink); color:#fff; }
+    .dock .go { display:flex; gap:8px; max-width:560px; margin:0 auto; }
+    .dock .go button { flex:1; margin:0; font-size:15px; }
+    .dock .go button.post { background:var(--amber); border-color:var(--amber); color:#111; }
   
   /* ===== 下のタブ（全ページ共通） ===== */
   .jt-tabs{display:grid;grid-template-columns:repeat(4,1fr);
@@ -212,12 +215,12 @@
 </div>
 
 <div class="dock">
-  <div class="go"><button id="toTrack">📦 段ボールの線路で走らせる</button></div>
+  <div class="go"><button id="toTrack">📦 段ボールの線路</button><button id="postMine" class="post">👀 みんなに出す</button></div>
 <nav class="jt-tabs">
   <a href="index.html"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
-  <a href="board.html"><span>🚏</span><small data-i18n="tab.board">案内板</small></a>
-  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
+  <a href="gallery.html"><span>👀</span><small data-i18n="tab.gallery">みんな</small></a>
   <a href="maker.html" class="on"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
+  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
 </nav>
 </div>
 
@@ -433,6 +436,21 @@ if (isIOS){
 }
 const _update = update;
 update = function(){ _update(); if (isIOS){ clearTimeout(iosTimer); iosTimer = setTimeout(buildIOS, 1200); } };
+
+/* ---------- 「みんなに出す」：車体の横の絵を、みんなの電車（gallery.html）に出す ----------
+   ※ 試作版：この端末の中（localStorage）に、最新の5台まで保存する */
+$("postMine").onclick = () => {
+  paint();
+  const c = document.createElement("canvas"); c.width = 640; c.height = Math.round(640 * SH / SW);
+  c.getContext("2d").drawImage(side, 0, 0, c.width, c.height);
+  let list = []; try { list = JSON.parse(localStorage.getItem("jatchu_my_trams") || "[]"); } catch (e) {}
+  list.unshift({ id: "m" + Date.now(), name: (S.text || "じぶんの電車"), img: c.toDataURL("image/jpeg", 0.8), t: Date.now() });
+  list = list.slice(0, 5);
+  for (let n = list.length; n > 0; n--){
+    try { localStorage.setItem("jatchu_my_trams", JSON.stringify(list.slice(0, n))); if (window.jatchuCount) jatchuCount("みんなに出す"); location.href = "gallery.html?mine=1"; return; } catch (e) {}
+  }
+  alert("保存できませんでした（プライベートブラウズでは使えません）");
+};
 
 /* ---------- 段ボールの線路AR（track.html）へ、作った電車の絵を渡す ---------- */
 $("toTrack").onclick = () => {
