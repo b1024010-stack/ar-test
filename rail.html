@@ -25,7 +25,12 @@
     [hidden] { display: none !important; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: #fff;
       font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
-    #stage { position: absolute; overflow: hidden; }
+    #stage { position: absolute; overflow: hidden; touch-action: none; }
+    /* 指で電車を動かす */
+    #autoBtn { position: fixed; right: calc(12px + env(safe-area-inset-right)); bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 6;
+      min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: #e8c15a; color: #1b2a4a; font-size: 15px; font-weight: bold; }
+    #dragHint { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 5;
+      padding: 6px 14px; border-radius: 999px; background: rgba(232,193,90,.92); color: #1b2a4a; font-size: 13px; font-weight: bold; white-space: nowrap; pointer-events: none; }
     #stage video, #stage img, #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     #gl, #ov { z-index: 2; }
     #start { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center;
@@ -76,6 +81,8 @@
     <div id="info"></div>
   </div>
   <div id="status" hidden></div>
+  <div id="dragHint" hidden>👆 画面をなぞると、電車を自分で動かせます</div>
+  <button id="autoBtn" hidden>▶ 自動で走らせる</button>
   <div id="place"></div>
   <div id="realWarn" hidden>🚋 本物の電車がまもなく来ます。<br>線路や車道から離れて、電車に注意してください</div>
   <div id="osm">地図データ © OpenStreetMap contributors</div>
@@ -568,7 +575,7 @@ function applyPose(b) {
   mw.decompose(p, q, sc);
   if (!W.pos || newView) {
     W.pos = p; W.quat = q;
-    if (newView) t0 = performance.now();                        // 見方が変わったら最初から
+    if (newView) { t0 = performance.now(); manual = null; }     // 見方が変わったら最初から（自動にもどす）
   } else {
     // ジャイロがあるときは、検出のゆれを強めにならす（スマホの動きはジャイロが受け持つ）
     const k = gyroOK() ? 0.12 : 0.25;
@@ -630,7 +637,10 @@ function loop(now) {
   const realSoon = realMin < 0.5;
   $('realWarn').hidden = !realSoon;
   if (realSoon) anchor.visible = false;
-  if (trainReady) train.position.set(trainPos(now), 0, 0);
+  if (trainReady) train.position.set(trainPosNow(now), 0, 0);
+  $('autoBtn').hidden = manual == null || !anchor.visible;
+  if (anchor.visible && hintT0 == null) hintT0 = now;
+  $('dragHint').hidden = !(anchor.visible && manual == null && !hintDone && now - hintT0 < 9000);
   updateView();
   renderer.render(scene, camera);
 
@@ -639,6 +649,7 @@ function loop(now) {
   st.textContent = realSoon ? '本物の電車が通過するまでお待ちください'
     : taps.length === 1 ? 'もう1本のレールをタップしてください'
     : anchor.visible ? (now - lastFound > 400 ? '🚋 走行中（レールを探しています）'
+      : manual != null ? `🚋 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
       : `🚋 走行中（${W.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`)
     : '線路を写してください（正面からでも横からでもOK）';
   $('place').textContent = placeText(realMin);
@@ -673,6 +684,58 @@ function drawDebug(lines, b, edges) {
 }
 
 /* ---------- レールをタップして選ぶ（自動でちがう線を選んだときの手直し） ---------- */
+/* ---------- 指で電車を動かす ----------
+   画面をなぞると、電車が線路にそって指についてくる（待たずに好きな所へ走らせられる）。
+   はじいて離すと、少しのあいだ惰性で走る。「▶ 自動で走らせる」で元にもどる */
+let manual = null, vel = 0, lastT = performance.now(), hintDone = false, hintT0 = null;   // hintT0：電車が初めて出た時刻
+let drag = null;                                   // { id, x, y, moved }
+const RANGE = () => (W.side ? [-SIDE_RANGE, SIDE_RANGE] : [2, APPROACH_FROM + 30]);
+function trainPosNow(now){
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  if (manual == null) return trainPos(now);
+  if (!drag){                                      // 惰性で走って、だんだん止まる
+    manual += vel * dt; vel *= Math.pow(0.12, dt);
+    if (Math.abs(vel) < 0.05) vel = 0;
+  }
+  const [lo, hi] = RANGE();
+  if (manual < lo){ manual = lo; vel = 0; } if (manual > hi){ manual = hi; vel = 0; }
+  return manual;
+}
+// 電車の今の場所で「線路の向きに1m動くと、画面で何ピクセル・どちら向きに動くか」
+function screenStep(){
+  const rc = glCanvas.getBoundingClientRect();
+  const toPx = (v) => { const q = v.clone().applyMatrix4(anchor.matrixWorld).project(camera);
+    return [(q.x + 1) / 2 * rc.width, (1 - q.y) / 2 * rc.height, q.z]; };
+  const x = train.position.x, a = toPx(new THREE.Vector3(x, 0, 0)), b = toPx(new THREE.Vector3(x + 1, 0, 0));
+  if (a[2] > 1 || b[2] > 1) return null;           // カメラの後ろ
+  const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+  return len < 1e-3 ? null : { ux: dx / len, uy: dy / len, ppm: len };   // 遠くて小さいときも、最低2px=1mとして動かす
+}
+stage.addEventListener('pointerdown', (e) => {
+  if (drag || !anchor.visible) return;
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, t: performance.now() };
+});
+stage.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const mx = e.clientX - drag.x, my = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(mx, my) < 12) return;   // 少し動いただけならタップ（レール選び）
+  const st = screenStep(); if (!st) return;
+  if (!drag.moved){ drag.moved = true; if (manual == null) manual = train.position.x; vel = 0; hintDone = true; }
+  // 指の動きのうち、線路の向きの分だけ電車を動かす（遠くは小さく、近くは大きく動く）
+  const along = (mx * st.ux + my * st.uy) / Math.max(st.ppm, 2);
+  const now = performance.now(), dt = Math.max(0.016, (now - drag.t) / 1000);
+  manual += along; vel = vel * 0.5 + (along / dt) * 0.5;
+  drag.x = e.clientX; drag.y = e.clientY; drag.t = now;
+});
+const endDrag = (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const was = drag.moved; drag = null;
+  if (was){ vel = Math.max(-40, Math.min(40, vel)); e.stopImmediatePropagation(); }   // なぞったときはレール選びにしない
+};
+stage.addEventListener('pointerup', endDrag, true);
+stage.addEventListener('pointercancel', endDrag, true);
+$('autoBtn').addEventListener('click', () => { manual = null; vel = 0; t0 = performance.now(); });
+
 stage.addEventListener('pointerup', (e) => {
   if (!srcW || !lastLines.length) return;
   const rc = ov.getBoundingClientRect();
