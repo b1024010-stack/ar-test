@@ -38,7 +38,13 @@
       padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); background: linear-gradient(#1b2a4a, #0b1020); overflow-y: auto; }
     #start h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: .06em; }
     #start .sub { margin: 0 0 16px; opacity: .8; font-size: 13px; }
-    .train { display: inline-block; margin: 0 0 14px; padding: 6px 14px; border-radius: 8px; background: rgba(255,255,255,.12); }
+    .train { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin: 0 0 12px; padding: 8px 14px; border-radius: 10px; background: rgba(255,255,255,.12); max-width: 100%; }
+    .train img { width: min(280px, 70vw); height: auto; border-radius: 6px; display: block; }
+    .train a { color: #e8c15a; font-size: 13px; }
+    .picks { display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 2px 2px 10px; margin-bottom: 6px; }
+    .picks a { flex: none; display: block; padding: 3px; border-radius: 8px; border: 2px solid transparent; }
+    .picks a.on { border-color: #e8c15a; }
+    .picks img { display: block; width: 120px; height: auto; border-radius: 4px; }
     .warn { max-width: 420px; text-align: left; background: #3a1010; border: 1px solid #ff6b5a; border-radius: 10px;
       padding: 12px 14px; font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
     .warn b { color: #ffb3a8; }
@@ -89,8 +95,9 @@
 
   <div id="start">
     <h1>本物の線路で走らせる</h1>
-    <p class="sub">試作版 ・ 函館市電の線路をカメラに写すと、電車が走ってきます</p>
-    <div class="train" id="trainName">🚋 花もめん号</div>
+    <p class="sub">函館市電の線路をカメラに写すと、じぶんで作った電車が走ってきます</p>
+    <div class="train" id="trainName">🚋 読み込み中…</div>
+    <div class="picks" id="picks" hidden></div>
     <div class="warn">
       <b>⚠ 安全のために</b><br>
       ・<b>線路や車道には絶対に立ち入らず</b>、歩道や安全地帯から使ってください<br>
@@ -103,7 +110,7 @@
     <div id="msg"></div>
   </div>
 
-<script src="shops.js"></script>
+<script src="designs.js"></script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -121,17 +128,24 @@ const REAL_DATA = false;             // 本物の運行情報につないだら 
 const SIDE_RANGE = 60;               // 横から見たとき、電車が現れる・去っていく距離 [m]
 
 const params = new URLSearchParams(location.search);
-const shopId = params.get('shop') || 'hanamomen';
 const $ = (id) => document.getElementById(id);
 let debug = params.has('debug');
 
-/* ---------- 電車の名前・もどる ---------- */
-// お店の情報（スプレッドシートの読み込みを少し待つ）
-const shopInfo = window.jatchuFind ? await window.jatchuFind(shopId) : null;
-const trainModel = window.jatchuModelOf ? window.jatchuModelOf(shopInfo) : shopId;
-{
-  $('trainName').textContent = '🚋 ' + (shopInfo ? shopInfo.name + '号' : '花もめん号');
-  $('back').href = 'mini.html?shop=' + encodeURIComponent(shopId);
+/* ---------- 走らせる電車（「つくる」で作った、じぶんの電車） ---------- */
+let design = null, designList = [];
+try { design = await JatchuDB.pick(params.get('id')); designList = await JatchuDB.list(); } catch (e) { console.warn(e); }
+if (design) JatchuDB.current = design.id;
+const escH = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+if (design) {
+  $('trainName').innerHTML = `<img src="${design.thumb}" alt=""><span>🚋 ${escH(design.name)}</span>`;
+  $('back').href = 'maker.html?id=' + encodeURIComponent(design.id);
+} else {
+  $('trainName').innerHTML = '<span>まだ電車をつくっていません（お手本の電車が走ります）</span><a href="maker.html?new=1">🎨 じぶんの電車をつくる →</a>';
+  $('back').href = 'index.html';
+}
+if (designList.length > 1) {                       // ほかの電車にかえる
+  $('picks').hidden = false;
+  $('picks').innerHTML = designList.map((d) => `<a href="rail.html?id=${encodeURIComponent(d.id)}" class="${design && d.id === design.id ? 'on' : ''}" title="${escH(d.name)}"><img src="${d.thumb}" alt="${escH(d.name)}"></a>`).join('');
 }
 
 /* ---------- 端末に保存する設定 ---------- */
@@ -172,11 +186,19 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.ShadowMa
 ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true; train.add(ground);
 
 let trainReady = false;
-new GLTFLoader().load(`tram-${trainModel}.glb?v=1`, onModel, undefined,
-  () => new GLTFLoader().load('tram-hanamomen.glb?v=1', onModel));
+new GLTFLoader().load('tram-hanamomen.glb?v=1', onModel);
 function onModel(gltf) {
   const m = gltf.scene;
   m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  // じぶんで作った電車の絵（ラッピング）を貼る
+  if (design && design.texture) {
+    const tex = new THREE.TextureLoader().load(URL.createObjectURL(design.texture));
+    tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    m.traverse((o) => {
+      if (!o.isMesh) return;
+      for (const mt of (Array.isArray(o.material) ? o.material : [o.material])) if (mt && mt.name === 'H500_Wrap_Baked') { mt.map = tex; mt.needsUpdate = true; }
+    });
+  }
   train.add(m);                     // モデルは実物大 [m]・X が車体の長さ・Y が上
   trainReady = true;
   if (sourceReady) enableStart();
@@ -799,7 +821,7 @@ if (params.get('img')) {
 <script>
   // 本物の線路を始めた数
   document.getElementById("camBtn").addEventListener("click", () =>
-    jatchuCount("本物の線路 → " + (new URLSearchParams(location.search).get("shop") || "hanamomen")));
+    jatchuCount("本物の線路 → じぶんの電車"));
 </script>
 </body>
 </html>

@@ -50,6 +50,8 @@
   .step .t{font-size:13px;font-weight:700;line-height:1.35}
   .step.soon{opacity:.6}
   a.step{color:inherit;text-decoration:none}
+  .cta2row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .cta2row .cta2{margin:0;font-size:14px;padding:0 6px;text-align:center}
   .cta2{display:flex;align-items:center;justify-content:center;margin:10px 0 0;min-height:48px;border-radius:24px;border:2px solid var(--amber);color:var(--amber);text-decoration:none;font-size:16px;font-weight:700}
   .step .soon{display:inline-block;margin-top:4px;font-size:10px;padding:1px 6px;border-radius:4px;background:#2a2a2e;color:#aaa}
 
@@ -141,40 +143,24 @@
     <h1 data-i18n-html="idx.h1">じぶんの電車を<br><em>デザイン</em>して、走らせよう</h1>
     <p data-i18n="idx.lead">色・もよう・おえかき・ステッカーで、世界に1台だけの電車を。できたらARで、机の上や函館の線路に走らせよう。</p>
     <a class="cta" href="maker.html" data-i18n="idx.cta">🎨 電車をつくる</a>
-    <a class="cta2" href="gallery.html" data-i18n="idx.see">👀 みんなの電車を見る</a>
+    <div class="cta2row"><a class="cta2" href="rail.html" data-i18n="idx.rail2">🛤 本物の線路で走らせる</a><a class="cta2" href="mine.html" data-i18n="idx.mine">🚃 じぶんの電車</a></div>
 
     <div class="steps">
       <div class="step"><span class="n">1</span><span class="ic">🎨</span><span class="t" data-i18n="idx.s1">デザインする</span></div>
-      <div class="step"><span class="n">2</span><span class="ic">📷</span><span class="t" data-i18n="idx.s2">ARで走らせる</span></div>
-      <a class="step" href="gallery.html"><span class="n">3</span><span class="ic">👀</span><span class="t" data-i18n="idx.s3">みんなに見せる</span></a>
+      <div class="step"><span class="n">2</span><span class="ic">📷</span><span class="t" data-i18n="idx.s2b">3D・ARで見る</span></div>
+      <a class="step" href="rail.html"><span class="n">3</span><span class="ic">🛤</span><span class="t" data-i18n="idx.s3b">本物の線路で走らせる</span></a>
     </div>
   </section>
 
   <!-- ほかのあそびかた -->
-  <h2 data-i18n="idx.others">ほかのあそびかた</h2>
-  <div class="list">
-    <a class="row" href="mini.html"><span class="ic">🚋</span><span class="tx"><span class="t" data-i18n="idx.mini.t">お店の電車をARで走らせる</span><span class="d" data-i18n="idx.mini.d">机や床の上を、大門町のお店のラッピング電車が走ります</span></span><span class="go">›</span></a>
-    <a class="row" href="rail.html"><span class="ic">🛤</span><span class="tx"><span class="t"><span data-i18n="idx.rail.t">本物の線路で</span><span class="tag" data-i18n="idx.beta">試作</span></span><span class="d" data-i18n="idx.rail.d">函館市電の線路にカメラを向けると電車が走る</span></span><span class="go">›</span></a>
-    <a class="row" href="track.html"><span class="ic">📦</span><span class="tx"><span class="t" data-i18n="idx.track.t">段ボールの線路</span><span class="d" data-i18n="idx.track.d">紙や段ボールの線路の上を走る</span></span><span class="go">›</span></a>
-    <a class="row" href="life-size.html"><span class="ic">🚃</span><span class="tx"><span class="t" data-i18n="idx.life.t">実物大の電車</span><span class="d" data-i18n="idx.life.d">全長13mの500形を目の前に出す</span></span><span class="go">›</span></a>
-    <a class="row" href="board.html"><span class="ic">🚏</span><span class="tx"><span class="t" data-i18n="idx.board.t">時刻表・案内板</span><span class="d" data-i18n="idx.board.d">電車の時刻・空席・限定メニュー・イベント</span></span><span class="go">›</span></a>
-  </div>
-
   <footer>
     <span data-i18n="safety">⚠ 線路や車道には入らず、歩道や安全地帯から使ってください。</span><br>
-    <span data-i18n="idx.sample">※ 時刻・お店・イベントの一部はサンプルです。</span><br>
-    <a href="qr.html" style="color:#888" data-i18n="idx.qr">🖨 QRコードの貼り紙をつくる（運営用）</a>
+        <a href="demo/index.html" style="color:#888" data-i18n="idx.demo">🧪 デモ版（以前の試作）を見る</a>
   </footer>
 </div>
 
-<nav class="jt-tabs">
-  <a href="index.html" class="on"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
-  <a href="gallery.html"><span>👀</span><small data-i18n="tab.gallery">みんな</small></a>
-  <a href="maker.html"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
-  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
-</nav>
+<nav class="jt-tabs"></nav>
 
-<script src="shops.js"></script>
 <script src="lang.js"></script>
 <script>
   const $ = id => document.getElementById(id);

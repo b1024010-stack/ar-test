@@ -60,6 +60,10 @@
     .hint { font-size:12px; color:#777; line-height:1.7; margin-top:8px; }
     .startbar { display:flex; align-items:center; gap:10px; margin:6px 0 14px; padding:10px 12px; border-radius:12px; background:#fff6e5; font-size:13px; color:#6b4a00; }
     .startbar span { flex:1; min-width:0; line-height:1.5; }
+    .startbar small { color:#9a7a30; }
+    .startbar .newbtn { flex:none; display:inline-flex; align-items:center; min-height:40px; padding:0 12px; border-radius:20px; background:#ffb020; color:#111; font-size:13px; font-weight:700; text-decoration:none; }
+    .resetrow { text-align:right; margin:-6px 0 8px; }
+    .resetrow button { min-height:34px; padding:0 12px; border:1px solid var(--line); border-radius:17px; background:#fff; color:#667; font-size:12px; cursor:pointer; }
     .startbar button { flex:none; min-height:40px; padding:0 12px; border:1px solid #f0c060; border-radius:20px; background:#fff; color:#6b4a00; font-size:13px; font-weight:700; cursor:pointer; }
     /* ⑤ おえかき・ステッカー */
     .tools { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
@@ -135,9 +139,10 @@
 
   <div class="sec">
     <div class="startbar">
-      <span>まっさらな白い電車から、自由にデザインしよう</span>
-      <button id="resetDesign">🔄 白い電車にもどす</button>
+      <span><b id="saveState">まっさらな白い電車から、自由にデザインしよう</b><br><small>作った電車は、このスマホに自動で保存されます</small></span>
+      <a class="newbtn" href="maker.html?new=1">＋ 新しくつくる</a>
     </div>
+    <div class="resetrow"><button id="resetDesign">🔄 色・模様・文字を白い電車にもどす</button></div>
     <h2>① 色<small>車体の色と、模様・帯の色</small></h2>
     <div class="row" style="margin-bottom:10px">
       <label class="small">車体</label>
@@ -215,16 +220,12 @@
 </div>
 
 <div class="dock">
-  <div class="go"><button id="toTrack">📦 段ボールの線路</button><button id="postMine" class="post">👀 みんなに出す</button></div>
-<nav class="jt-tabs">
-  <a href="index.html"><span>🏠</span><small data-i18n="tab.home">ホーム</small></a>
-  <a href="gallery.html"><span>👀</span><small data-i18n="tab.gallery">みんな</small></a>
-  <a href="maker.html" class="on"><span>🎨</span><small data-i18n="tab.maker">つくる</small></a>
-  <a href="mini.html"><span>🚋</span><small data-i18n="tab.ar">AR</small></a>
-</nav>
+  <div class="go"><button id="goMine">🚃 じぶんの電車</button><button id="goRail" class="post">🛤 線路で走らせる</button></div>
+<nav class="jt-tabs"></nav>
 </div>
 
 <script src="lang.js"></script>
+<script src="designs.js"></script>
 <script>
 /* ---------- 設定 ---------- */
 const PRESET1 = ["#ffffff","#1d4e89","#b22222","#2e7d32","#222222","#f2c14e"];
@@ -268,20 +269,23 @@ $("txt").oninput = () => { S.text = $("txt").value; update(); };
 $("photo").onchange = e => {
   const f = e.target.files[0]; if(!f) return;
   const img = new Image();
-  img.onload = () => { S.photo = img; $("rmPhoto").hidden = false; update(); };
+  img.onload = () => { S.photo = img; S.photoBlob = f; $("rmPhoto").hidden = false; update(); };
   img.src = URL.createObjectURL(f);
 };
 // 「白い電車にもどす」：色・模様・文字・写真を最初にもどす（おえかき・ステッカーはそのまま）
 $("resetDesign").onclick = () => {
   if (!confirm("色・模様・文字・写真を、白い電車にもどしますか？（おえかきとステッカーは残ります）")) return;
-  Object.assign(S, DEFAULT);
-  $("c1").value = S.c1; $("c2").value = S.c2; $("c3").value = S.c3; $("txt").value = ""; $("photo").value = ""; $("rmPhoto").hidden = true;
+  Object.assign(S, DEFAULT, { photoBlob: null });
+  syncUI(); update();
+};
+// 入力欄やボタンの見た目を、今のデザイン（S）に合わせる
+function syncUI(){
+  $("c1").value = S.c1; $("c2").value = S.c2; $("c3").value = S.c3; $("txt").value = S.text || ""; $("photo").value = ""; $("rmPhoto").hidden = !S.photo;
   swatches($("sw1"), PRESET1, "c1", $("c1")); swatches($("sw2"), PRESET2, "c2", $("c2"));
   options($("pats"), PATTERNS, "pat", 1); options($("fonts"), FONTS, "font", 1);
   $("fonts").querySelectorAll(".opt").forEach((b,i)=> b.style.fontFamily = FONTS[i][0]);
-  update();
-};
-$("rmPhoto").onclick = () => { S.photo = null; $("photo").value=""; $("rmPhoto").hidden = true; update(); };
+}
+$("rmPhoto").onclick = () => { S.photo = null; S.photoBlob = null; $("photo").value=""; $("rmPhoto").hidden = true; update(); };
 
 /* ---------- 描画 ---------- */
 function pattern(g, w, h, kind, col){
@@ -375,6 +379,7 @@ async function apply(){
 let update = function(){
   baseDirty = true;
   paint();
+  scheduleSave();
   clearTimeout(timer); timer = setTimeout(apply, 250);
 }
 
@@ -436,35 +441,6 @@ if (isIOS){
 }
 const _update = update;
 update = function(){ _update(); if (isIOS){ clearTimeout(iosTimer); iosTimer = setTimeout(buildIOS, 1200); } };
-
-/* ---------- 「みんなに出す」：車体の横の絵を、みんなの電車（gallery.html）に出す ----------
-   ※ 試作版：この端末の中（localStorage）に、最新の5台まで保存する */
-$("postMine").onclick = () => {
-  paint();
-  const c = document.createElement("canvas"); c.width = 640; c.height = Math.round(640 * SH / SW);
-  c.getContext("2d").drawImage(side, 0, 0, c.width, c.height);
-  let list = []; try { list = JSON.parse(localStorage.getItem("jatchu_my_trams") || "[]"); } catch (e) {}
-  list.unshift({ id: "m" + Date.now(), name: (S.text || "じぶんの電車"), img: c.toDataURL("image/jpeg", 0.8), t: Date.now() });
-  list = list.slice(0, 5);
-  for (let n = list.length; n > 0; n--){
-    try { localStorage.setItem("jatchu_my_trams", JSON.stringify(list.slice(0, n))); if (window.jatchuCount) jatchuCount("みんなに出す"); location.href = "gallery.html?mine=1"; return; } catch (e) {}
-  }
-  alert("保存できませんでした（プライベートブラウズでは使えません）");
-};
-
-/* ---------- 段ボールの線路AR（track.html）へ、作った電車の絵を渡す ---------- */
-$("toTrack").onclick = () => {
-  paint();
-  const small = document.createElement("canvas"); small.width = small.height = 1024;
-  small.getContext("2d").drawImage(tex, 0, 0, 1024, 1024);
-  let saved = false;
-  for (const c of [tex, small]) {          // 大きくて保存できなければ、小さくして保存
-    try { localStorage.setItem("jatchu_wrap", c.toDataURL("image/jpeg", 0.85)); saved = true; break; } catch (e) {}
-  }
-  if (!saved) { alert("電車の絵を保存できませんでした（プライベートブラウズでは使えません）"); return; }
-  location.href = "track.html?shop=custom";
-};
-
 
 /* =========================================================
    ⑤ おえかき・ステッカー
@@ -717,12 +693,63 @@ const end = e => {
 };
 ed.addEventListener("pointerup", end); ed.addEventListener("pointercancel", end);
 
+/* =========================================================
+   保存：作った電車を、このスマホの中に自動で保存する（designs.js）
+   ========================================================= */
+const params = new URLSearchParams(location.search);
+let DID = null, created = null, savedOnce = false, saveT = null, loading = true, lastSig = "";
+// 中身が変わったときだけ保存する（開いただけで「直した時刻」が変わらないように）
+const sig = () => { const { photo, photoBlob, ...st } = S; return JSON.stringify([st, ART.strokes, ART.stickers, photoBlob ? photoBlob.size : 0]); };
+const isBlank = () => !S.text && !S.photo && !ART.strokes.length && !ART.stickers.length &&
+  S.c1 === DEFAULT.c1 && S.c2 === DEFAULT.c2 && S.pat === DEFAULT.pat;
+function scheduleSave(){ if (loading) return; clearTimeout(saveT); saveT = setTimeout(() => save(), 900); }
+async function save(force){
+  clearTimeout(saveT);
+  if (!DID || (!force && !savedOnce && isBlank())) return;      // まっさらなままなら保存しない
+  if (!force && savedOnce && sig() === lastSig) return;         // 何も変わっていない
+  try {
+    paint();
+    const texture = await new Promise(r => tex.toBlob(r, "image/jpeg", 0.85));
+    const c = mk(640, Math.round(640 * SH / SW)); c.getContext("2d").drawImage(side, 0, 0, c.width, c.height);
+    const { photo, photoBlob, ...st } = S;
+    await JatchuDB.put({ id: DID, name: S.text || "じぶんの電車", created: created || (created = Date.now()), updated: Date.now(),
+      state: { S: st, strokes: ART.strokes, stickers: ART.stickers }, photo: S.photoBlob || null, texture, thumb: c.toDataURL("image/jpeg", 0.8) });
+    JatchuDB.current = DID; savedOnce = true; lastSig = sig();
+    $("saveState").textContent = "✓ 保存しました（" + new Date().toLocaleTimeString().slice(0, -3) + "）";
+  } catch (e) { console.error(e); $("saveState").textContent = "⚠ 保存できませんでした（プライベートブラウズでは保存できません）"; }
+}
+async function loadDesign(){
+  let rec = null;
+  if (!params.has("new")) { try { rec = await JatchuDB.pick(params.get("id")); } catch (e) {} }
+  if (rec){
+    DID = rec.id; created = rec.created; savedOnce = true;
+    Object.assign(S, DEFAULT, rec.state.S || {}, { photo: null, photoBlob: null });
+    ART.strokes = rec.state.strokes || []; ART.stickers = rec.state.stickers || []; redrawArt();
+    if (rec.photo){
+      const img = new Image(); img.src = URL.createObjectURL(rec.photo);
+      try { await img.decode(); S.photo = img; S.photoBlob = rec.photo; } catch (e) {}
+    }
+    syncUI();
+    $("saveState").textContent = "「" + rec.name + "」の続きから";
+    lastSig = sig();
+    JatchuDB.current = DID;
+  } else {
+    DID = JatchuDB.newId();
+  }
+  loading = false;
+  update();
+}
+// 下のボタン
+$("goRail").onclick = async () => { await save(true); location.href = "rail.html?id=" + encodeURIComponent(DID); };
+$("goMine").onclick = async () => { await save(); location.href = "mine.html"; };
+addEventListener("pagehide", () => { if (saveT) save(); });
+
 base.onload = update;
 document.fonts && document.fonts.ready.then(update);
-update();
+loadDesign();
 </script>
 <script>
-  // ARを始めた数（じぶんの電車）。段ボールの線路へ進んだ数は track.html?shop=custom のページ数で分かる
+  // ARを始めた数（じぶんの電車）
   document.querySelectorAll(".ar-btn").forEach(b => b.addEventListener("click", () => jatchuCount("AR開始 → じぶんの電車")));
 </script>
 </body>

@@ -21,6 +21,9 @@
     "tab.home":   L("ホーム", "Home", "首頁", "首页", "홈"),
     "tab.board":  L("案内板", "Info", "資訊看板", "信息看板", "안내판"),
     "tab.ar":     L("AR", "AR", "AR", "AR", "AR"),
+    "tab.gallery": L("みんな", "Gallery", "大家的", "大家的", "모두"),
+    "tab.mine":    L("じぶんの電車", "My trams", "我的電車", "我的电车", "내 전차"),
+    "tab.run":     L("走らせる", "Run", "奔跑", "奔跑", "달리기"),
     "tab.maker":  L("つくる", "Create", "製作", "制作", "만들기"),
     "car":        L("{name}号", "{name} Tram", "{name}號", "{name}号", "{name} 호"),
     "st.ok":      L("○ 空席", "○ Seats", "○ 有空位", "○ 有空位", "○ 자리 있음"),
@@ -72,6 +75,68 @@
     "idx.board.t": L("時刻表・案内板", "Timetable & info", "時刻表・資訊看板", "时刻表・信息看板", "시각표・안내판"),
     "idx.board.d": L("電車の時刻・空席・限定メニュー・イベント", "Tram times, open seats, specials and events", "電車時刻・空位・限定菜單・活動", "电车时刻・空位・限定菜单・活动", "전차 시각・빈자리・한정 메뉴・이벤트"),
     "idx.sample":  L("※ 時刻・お店・イベントの一部はサンプルです。", "* Some times, shops and events are samples.", "※ 部分時刻・店家・活動為範例。", "※ 部分时刻・店家・活动为示例。", "※ 시각・가게・이벤트의 일부는 샘플입니다."),
+    "idx.see":     L("👀 みんなの電車を見る", "👀 See everyone's trams", "👀 看大家的電車", "👀 看大家的电车", "👀 모두의 전차 보기"),
+
+    "idx.rail2":   L("🛤 本物の線路で走らせる", "🛤 Run on real tracks", "🛤 在真正的軌道上跑", "🛤 在真正的轨道上跑", "🛤 진짜 선로에서 달리기"),
+    "idx.mine":    L("🚃 じぶんの電車", "🚃 My trams", "🚃 我的電車", "🚃 我的电车", "🚃 내 전차"),
+    "idx.s2b":     L("3D・ARで見る", "See it in 3D & AR", "用3D・AR觀看", "用3D・AR观看", "3D・AR로 보기"),
+    "idx.s3b":     L("本物の線路で走らせる", "Run it on real tracks", "在真正的軌道上跑", "在真正的轨道上跑", "진짜 선로에서 달리기"),
+    "idx.demo":    L("🧪 デモ版（以前の試作）を見る", "🧪 See the demo (earlier prototype)", "🧪 查看示範版（之前的試作）", "🧪 查看演示版（之前的试作）", "🧪 데모판(이전 시제품) 보기"),
+
+    // じぶんの電車（mine.html）
+    "my.title":    L("🚃 じぶんの電車", "🚃 My trams", "🚃 我的電車", "🚃 我的电车", "🚃 내 전차"),
+    "my.sub":      L("作った電車が流れてきます。スワイプで速さを変えられます。電車をタップすると、なおしたり線路で走らせたりできます。",
+                     "Your trams roll by. Swipe to change the speed. Tap a tram to edit it or run it on real tracks.",
+                     "你做的電車會一台台跑過來。滑動可以改變速度，點電車就能修改或在軌道上奔跑。",
+                     "你做的电车会一台台跑过来。滑动可以改变速度，点电车就能修改或在轨道上奔跑。",
+                     "내가 만든 전차가 달려와요. 스와이프로 속도를 바꿀 수 있어요. 전차를 탭하면 고치거나 선로에서 달리게 할 수 있어요."),
+    "my.empty":    L("まだ電車がありません。今はお手本の電車が走っています。「つくる」で、じぶんの電車をつくってみよう！",
+                     "No trams yet — sample trams are running for now. Make your own in “Create”!",
+                     "還沒有電車。現在跑的是範例電車。到「製作」做出你自己的電車吧！",
+                     "还没有电车。现在跑的是示例电车。到「制作」做出你自己的电车吧！",
+                     "아직 전차가 없어요. 지금은 견본 전차가 달리고 있어요. ‘만들기’에서 나만의 전차를 만들어 보세요!"),
+    "my.make":     L("＋ 新しい電車をつくる", "+ Make a new tram", "＋ 做一台新電車", "＋ 做一台新电车", "+ 새 전차 만들기"),
+    "my.list":     L("保存した電車（{n}台）", "Saved trams ({n})", "已儲存的電車（{n}台）", "已保存的电车（{n}台）", "저장한 전차 ({n}대)"),
+    "my.none":     L("まだありません", "None yet", "還沒有", "还没有", "아직 없어요"),
+    "my.when":     L("{d} に保存", "Saved {d}", "{d} 儲存", "{d} 保存", "{d} 저장"),
+    "my.sample":   L("お手本の電車", "Sample tram", "範例電車", "示例电车", "견본 전차"),
+    "my.run":      L("🛤 本物の線路で走らせる", "🛤 Run on real tracks", "🛤 在真正的軌道上跑", "🛤 在真正的轨道上跑", "🛤 진짜 선로에서 달리기"),
+    "my.edit":     L("✏️ なおす・3DとARで見る", "✏️ Edit · see in 3D & AR", "✏️ 修改・用3D和AR看", "✏️ 修改・用3D和AR看", "✏️ 고치기・3D와 AR로 보기"),
+    "my.del":      L("🗑 この電車をけす", "🗑 Delete this tram", "🗑 刪除這台電車", "🗑 删除这台电车", "🗑 이 전차 지우기"),
+    "my.delq":     L("「{name}」をけしますか？（もとにもどせません）", "Delete “{name}”? (This can't be undone)", "要刪除「{name}」嗎？（無法復原）", "要删除「{name}」吗？（无法恢复）", "‘{name}’을(를) 지울까요? (되돌릴 수 없어요)"),
+    "my.note":     L("※ 作った電車は、このスマホの中だけに保存されます（ほかの人には見えません）。ブラウザの履歴やWebサイトのデータを消すと、いっしょに消えます。",
+                     "* Your trams are saved only on this phone (no one else can see them). Clearing your browser's history or website data deletes them too.",
+                     "※ 你做的電車只會存在這支手機裡（其他人看不到）。清除瀏覽器的紀錄或網站資料時也會一起刪除。",
+                     "※ 你做的电车只会保存在这部手机里（其他人看不到）。清除浏览器的记录或网站数据时也会一起删除。",
+                     "※ 만든 전차는 이 스마트폰에만 저장돼요(다른 사람은 볼 수 없어요). 브라우저 기록이나 웹사이트 데이터를 지우면 함께 지워져요."),
+
+    // みんなの電車（gallery.html）
+    "gl.title":    L("👀 みんなの電車", "👀 Everyone's trams", "👀 大家的電車", "👀 大家的电车", "👀 모두의 전차"),
+    "gl.sub":      L("左右にスワイプして速さを変えよう。電車をタップすると、いいね・コメントできます。",
+                     "Swipe left or right to change the speed. Tap a tram to like it or leave a comment.",
+                     "左右滑動來改變速度。點一下電車就能按讚・留言。",
+                     "左右滑动来改变速度。点一下电车就能点赞・留言。",
+                     "좌우로 스와이프해서 속도를 바꿔 보세요. 전차를 탭하면 좋아요・댓글을 남길 수 있어요."),
+    "gl.hint":     L("👆 スワイプ！", "👆 Swipe!", "👆 滑動！", "👆 滑动！", "👆 스와이프!"),
+    "gl.speed":    L("はやさ", "Speed", "速度", "速度", "속도"),
+    "gl.make":     L("🎨 じぶんの電車をつくって出す", "🎨 Design yours and add it", "🎨 製作自己的電車並加入", "🎨 制作自己的电车并加入", "🎨 나만의 전차를 만들어 올리기"),
+    "gl.rank":     L("いいねが多い電車ほど、よく走ってきます", "The more likes a tram has, the more often it comes by", "讚越多的電車，越常跑過來", "赞越多的电车，越常跑过来", "좋아요가 많은 전차일수록 자주 달려와요"),
+    "gl.chance":   L("出やすさ {p}%", "Chance {p}%", "出現率 {p}%", "出现率 {p}%", "출현율 {p}%"),
+    "gl.by.sample": L("サンプル", "Sample", "範例", "示例", "샘플"),
+    "gl.by.me":    L("あなたの電車", "Your tram", "你的電車", "你的电车", "내 전차"),
+    "gl.like":     L("いいね", "Like", "讚", "赞", "좋아요"),
+    "gl.comments": L("コメント", "Comments", "留言", "留言", "댓글"),
+    "gl.ph":       L("ひとことコメント（40文字まで）", "Short comment (up to 40 characters)", "簡短留言（40字以內）", "简短留言（40字以内）", "한마디 댓글 (40자까지)"),
+    "gl.send":     L("送る", "Send", "送出", "发送", "보내기"),
+    "gl.ng":       L("その言葉は使えません", "That word can't be used", "不能使用這個詞", "不能使用这个词", "그 말은 쓸 수 없어요"),
+    "gl.none":     L("まだコメントはありません", "No comments yet", "還沒有留言", "还没有留言", "아직 댓글이 없어요"),
+    "gl.close":    L("閉じる", "Close", "關閉", "关闭", "닫기"),
+    "gl.mine.new": L("🎉 あなたの電車が走ってきます！", "🎉 Here comes your tram!", "🎉 你的電車來了！", "🎉 你的电车来了！", "🎉 내 전차가 달려와요!"),
+    "gl.note":     L("※ 試作版です。いいね・コメントは、この端末の中だけに保存されます（ほかの人には見えません）。サンプルの電車のいいね数・コメントは例です。",
+                     "* Prototype: likes and comments are saved only on this device (other people can't see them). The likes and comments on sample trams are examples.",
+                     "※ 試作版。按讚・留言只會存在這台裝置裡（其他人看不到）。範例電車的讚數・留言只是例子。",
+                     "※ 试作版。点赞・留言只会保存在这台设备里（其他人看不到）。示例电车的赞数・留言只是例子。",
+                     "※ 시범 버전입니다. 좋아요・댓글은 이 기기에만 저장돼요(다른 사람에게는 보이지 않아요). 샘플 전차의 좋아요 수・댓글은 예시입니다."),
     "idx.qr":      L("🖨 QRコードの貼り紙をつくる（運営用）", "🖨 Print QR posters (for staff)", "🖨 製作QR海報（工作人員用）", "🖨 制作QR海报（工作人员用）", "🖨 QR 포스터 만들기 (운영자용)"),
     "idx.h1":      L("じぶんの電車を<br><em>デザイン</em>して、走らせよう", "<em>Design</em> your own tram,<br>then make it run", "<em>設計</em>你自己的電車，<br>讓它跑起來", "<em>设计</em>你自己的电车，<br>让它跑起来", "나만의 전차를 <em>디자인</em>하고<br>달리게 하자"),
     "idx.lead":    L("色・もよう・おえかき・ステッカーで、世界に1台だけの電車を。できたらARで、机の上や函館の線路に走らせよう。",
@@ -169,8 +234,18 @@
   }
   const status = (st) => t("st." + (st || "ok"));
 
+  // 下のタブ（中が空の <nav class="jt-tabs"></nav> に、本番のタブを入れる）
+  const TABS = [["index.html", "🏠", "tab.home"], ["maker.html", "🎨", "tab.maker"], ["mine.html", "🚃", "tab.mine"], ["rail.html", "🛤", "tab.run"]];
+  function tabs() {
+    const here = location.pathname.replace(/.*\//, "") || "index.html";
+    document.querySelectorAll("nav.jt-tabs").forEach((nav) => {
+      if (nav.children.length) return;
+      nav.innerHTML = TABS.map(([h, i, k]) => `<a href="${h}"${h === here ? ' class="on"' : ""}><span>${i}</span><small data-i18n="${k}"></small></a>`).join("");
+    });
+  }
   // data-i18n のついた所を、今のことばに書き換える
   function apply(root = document) {
+    tabs();
     root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
     root.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
     const tt = document.querySelector("[data-i18n-title]");
