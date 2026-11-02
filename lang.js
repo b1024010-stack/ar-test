@@ -83,6 +83,36 @@
     "idx.s3b":     L("本物の線路で走らせる", "Run it on real tracks", "在真正的軌道上跑", "在真正的轨道上跑", "진짜 선로에서 달리기"),
     "idx.demo":    L("🧪 デモ版（以前の試作）を見る", "🧪 See the demo (earlier prototype)", "🧪 查看示範版（之前的試作）", "🧪 查看演示版（之前的试作）", "🧪 데모판(이전 시제품) 보기"),
 
+    // はじめての人向けの案内（index.html）
+    "ob.help":     L("使い方", "How it works", "使用方法", "使用方法", "사용 방법"),
+    "ob.skip":     L("スキップ", "Skip", "略過", "跳过", "건너뛰기"),
+    "ob.next":     L("つぎへ", "Next", "下一步", "下一步", "다음"),
+    "ob.start":    L("🎨 さっそくつくる", "🎨 Start designing", "🎨 馬上開始製作", "🎨 马上开始制作", "🎨 바로 만들기"),
+    "ob.home":     L("ホームを見る", "Go to Home", "看首頁", "看首页", "홈 보기"),
+    "ob.t1":       L("電車をデザインする", "Design a tram", "設計電車", "设计电车", "전차 디자인하기"),
+    "ob.d1":       L("まっさらな白い電車に、色・もよう・文字・写真・おえかき・ステッカーで、世界に1台だけの電車をつくろう。",
+                     "Start from a plain white tram and add colors, patterns, text, photos, drawings and stickers to make a one-of-a-kind tram.",
+                     "從一台全白的電車開始，用顏色・圖案・文字・照片・塗鴉・貼紙，做出世界上唯一的電車。",
+                     "从一台全白的电车开始，用颜色・图案・文字・照片・涂鸦・贴纸，做出世界上唯一的电车。",
+                     "새하얀 전차에 색・무늬・글자・사진・그림・스티커로 세상에 하나뿐인 전차를 만들어 보세요."),
+    "ob.t2":       L("3D・ARで見る", "See it in 3D & AR", "用3D・AR觀看", "用3D・AR观看", "3D・AR로 보기"),
+    "ob.d2":       L("つくった電車は3Dでくるっと回して見られます。「ARで走らせる」を押すと、机や床の上を走ります。",
+                     "Spin your tram around in 3D. Tap “Run it in AR” and it runs on your table or floor.",
+                     "做好的電車可以用3D轉來轉去看。按「用AR讓它跑」，它就會在桌上或地板上奔跑。",
+                     "做好的电车可以用3D转来转去看。按「用AR让它跑」，它就会在桌上或地板上奔跑。",
+                     "만든 전차를 3D로 빙글빙글 돌려 볼 수 있어요. ‘AR로 달리기’를 누르면 책상이나 바닥 위를 달려요."),
+    "ob.t3":       L("本物の線路で走らせる", "Run it on real tracks", "在真正的軌道上跑", "在真正的轨道上跑", "진짜 선로에서 달리기"),
+    "ob.d3":       L("函館市電の線路にカメラを向けると、じぶんの電車が走ってきます。画面をなぞると動かせます。",
+                     "Point your camera at the Hakodate tram tracks and your tram comes running. Swipe the screen to move it.",
+                     "把相機對準函館市電的軌道，你的電車就會跑過來。滑動畫面可以移動它。",
+                     "把相机对准函馆市电的轨道，你的电车就会跑过来。滑动画面可以移动它。",
+                     "하코다테 시덴 선로에 카메라를 비추면 내 전차가 달려와요. 화면을 문지르면 움직일 수 있어요."),
+    "ob.safe":     L("⚠ 線路や車道には絶対に入らず、歩道や安全地帯から使ってください。",
+                     "⚠ Never step onto the tracks or the road. Use it from the sidewalk or the tram stop.",
+                     "⚠ 絕對不要進入軌道或車道，請在人行道或安全島上使用。",
+                     "⚠ 绝对不要进入轨道或车道，请在人行道或安全岛上使用。",
+                     "⚠ 선로나 차도에는 절대 들어가지 말고, 보도나 안전지대에서 사용하세요."),
+
     // じぶんの電車（mine.html）
     "my.title":    L("🚃 じぶんの電車", "🚃 My trams", "🚃 我的電車", "🚃 我的电车", "🚃 내 전차"),
     "my.sub":      L("作った電車が流れてきます。スワイプで速さを変えられます。電車をタップすると、なおしたり線路で走らせたりできます。",
@@ -248,6 +278,7 @@
     tabs();
     root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
     root.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
+    root.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
     const tt = document.querySelector("[data-i18n-title]");
     if (tt) document.title = t(tt.dataset.i18nTitle);
     document.documentElement.lang = lang;

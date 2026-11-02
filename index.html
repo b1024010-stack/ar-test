@@ -89,6 +89,31 @@
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
   .jt-tabs a small{font-size:1em}
+
+  /* ===== はじめての人向けの案内（3まい） ===== */
+  .help{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid #3a3a3d;background:#141417;color:#f4f1e8;font-size:16px;font-weight:900;cursor:pointer}
+  .ob{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:#0b0b0c;
+      padding:calc(10px + env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom))}
+  .ob[hidden]{display:none}
+  .ob .skip{align-self:flex-end;margin:0 14px;min-height:40px;padding:0 14px;border:0;border-radius:20px;background:transparent;color:#9a9aa2;font-size:14px;cursor:pointer}
+  .ob .slides{flex:1;min-height:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .ob .slides::-webkit-scrollbar{display:none}
+  .ob .slide{flex:none;width:100%;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;
+             padding:0 28px;text-align:center;max-width:100vw}
+  .ob .pic{width:min(300px,78vw);border-radius:20px;overflow:hidden;background:#142033;border:1px solid #24395a}
+  .ob .pic svg{display:block;width:100%;height:auto}
+  .ob .no{margin-top:22px;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffb020;color:#111;font-weight:900}
+  .ob h2{margin:10px 0 8px;font-size:24px;font-weight:900;color:#f4f1e8}
+  .ob p{margin:0;max-width:340px;font-size:15px;line-height:1.7;color:#b5b5bc}
+  .ob .safe{margin-top:12px;max-width:340px;padding:8px 12px;border-radius:10px;background:#3a1010;border:1px solid #ff6b5a;color:#ffd0c8;font-size:13px;line-height:1.6;text-align:left}
+  .ob .dots{display:flex;justify-content:center;gap:8px;margin:12px 0}
+  .ob .dots i{width:8px;height:8px;border-radius:4px;background:#3a3a40;transition:width .2s,background .2s}
+  .ob .dots i.on{width:22px;background:#ffb020}
+  .ob .btns{display:grid;gap:8px;padding:0 20px;max-width:440px;width:100%;margin:0 auto}
+  .ob .btns button,.ob .btns a{display:flex;align-items:center;justify-content:center;min-height:56px;border-radius:28px;border:0;font-size:18px;font-weight:900;cursor:pointer;text-decoration:none;font-family:inherit}
+  .ob .go{background:#ffb020;color:#111}
+  .ob .sub2{background:transparent;color:#ffb020;border:2px solid #ffb020 !important;min-height:48px !important;font-size:15px !important}
+  .ob .sub2[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -98,6 +123,7 @@
     <img src="icon-192.png" alt="">
     <div class="brand led glow" data-i18n="idx.brand">ジャッチュ</div>
     <div id="langSw"></div>
+    <button class="help" id="helpBtn" aria-label="使い方" data-i18n-aria="ob.help">？</button>
   </div>
 
   <!-- ホーム画面に追加の案内（追加ずみ・パソコンでは出ない） -->
@@ -157,6 +183,49 @@
   </footer>
 </div>
 
+
+<!-- はじめての人向けの案内（最初の1回だけ。右上の「？」でもう一度見られる） -->
+<div class="ob" id="ob" hidden role="dialog" aria-modal="true">
+  <button class="skip" id="obSkip" data-i18n="ob.skip">スキップ</button>
+  <div class="slides" id="obSlides">
+    <section class="slide"><div class="pic"><svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg"><rect width="300" height="200" fill="#142033"/>
+  <rect x="40" y="70" width="220" height="62" rx="14" fill="#fff"/><rect x="48" y="62" width="204" height="10" rx="4" fill="#9aa3ae"/>
+  <g fill="#26364d"><rect x="56" y="80" width="22" height="17" rx="3"/><rect x="86" y="80" width="22" height="17" rx="3"/><rect x="192" y="80" width="22" height="17" rx="3"/><rect x="222" y="80" width="22" height="17" rx="3"/></g>
+  <path d="M60 118 q8 -10 16 0 t16 0 t16 0" stroke="#4fb8e8" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M150 112 c-3 -5 -10 -2 -8 3 c1 3 8 7 8 7 c0 0 7 -4 8 -7 c2 -5 -5 -8 -8 -3z" fill="#ff5a7a"/>
+  <polygon points="200,104 202.6,110 209,110.4 204,114.4 205.7,120.6 200,117 194.3,120.6 196,114.4 191,110.4 197.4,110" fill="#ffd23f"/>
+  <g transform="translate(232 112) rotate(35)"><rect x="0" y="-40" width="10" height="38" rx="1.5" fill="#ffb020"/><rect x="0" y="-40" width="10" height="7" fill="#ff7aa2"/><path d="M0 -2 L5 9 L10 -2Z" fill="#f2d3a0"/></g>
+  <g fill="#fff"><circle cx="40" cy="166" r="12" fill="#ffffff"/><circle cx="72" cy="166" r="12" fill="#1d4e89"/><circle cx="104" cy="166" r="12" fill="#b22222"/><circle cx="136" cy="166" r="12" fill="#2e7d32"/><circle cx="168" cy="166" r="12" fill="#f2c14e"/></g>
+  <text x="200" y="171" font-size="14" fill="#cfd6de" font-family="sans-serif">🦑⭐🌸</text></svg></div><span class="no">1</span>
+      <h2 data-i18n="ob.t1">電車をデザインする</h2><p data-i18n="ob.d1">まっさらな白い電車に、色・もよう・文字・写真・おえかき・ステッカーで、世界に1台だけの電車をつくろう。</p></section>
+    <section class="slide"><div class="pic"><svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg"><rect width="300" height="200" fill="#142033"/>
+  <path d="M0 150 L300 150 L300 200 L0 200Z" fill="#3a2d26"/><path d="M0 150 L300 150" stroke="#5a463a" stroke-width="3"/>
+  <ellipse cx="150" cy="148" rx="80" ry="10" fill="rgba(0,0,0,.35)"/>
+  <g transform="translate(88 104) scale(.55)"><rect x="0" y="8" width="220" height="62" rx="14" fill="#ff7aa2"/><rect x="8" y="0" width="204" height="10" rx="4" fill="#9aa3ae"/>
+    <g fill="#26364d"><rect x="16" y="18" width="22" height="17" rx="3"/><rect x="46" y="18" width="22" height="17" rx="3"/><rect x="152" y="18" width="22" height="17" rx="3"/><rect x="182" y="18" width="22" height="17" rx="3"/></g>
+    <circle cx="40" cy="74" r="7" fill="#333"/><circle cx="180" cy="74" r="7" fill="#333"/></g>
+  <g transform="translate(196 38) rotate(12)"><rect width="74" height="130" rx="12" fill="#17171c" stroke="#d9d9de" stroke-width="3"/><rect x="6" y="12" width="62" height="106" rx="4" fill="#0f2338"/>
+    <path d="M10 80 L64 80 M10 92 L64 92 M10 104 L64 104" stroke="#2f5d8a"/><rect x="14" y="58" width="46" height="16" rx="4" fill="#ff7aa2"/><text x="37" y="40" text-anchor="middle" font-size="14" font-weight="900" fill="#4fd8ff" font-family="sans-serif">AR</text></g>
+  <path d="M60 40 a26 26 0 1 1 0 40" stroke="#ffb020" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M60 80 l-8 -2 l6 -7z" fill="#ffb020"/>
+  <text x="58" y="66" text-anchor="middle" font-size="15" font-weight="900" fill="#ffb020" font-family="sans-serif">3D</text></svg></div><span class="no">2</span>
+      <h2 data-i18n="ob.t2">3D・ARで見る</h2><p data-i18n="ob.d2">つくった電車は3Dでくるっと回して見られます。「ARで走らせる」を押すと、机や床の上を走ります。</p></section>
+    <section class="slide"><div class="pic"><svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg"><rect width="300" height="200" fill="#9fb4cf"/><rect y="78" width="300" height="122" fill="#6f747c"/>
+  <path d="M150 78 L60 200 M150 78 L240 200" stroke="#2a2a2c" stroke-width="5"/><path d="M150 78 L52 200 M150 78 L248 200" stroke="#c9c6bf" stroke-width="2"/>
+  <g transform="translate(112 66)"><rect width="76" height="62" rx="10" fill="#e0115f"/><rect x="8" y="8" width="60" height="22" rx="3" fill="#26364d"/><circle cx="16" cy="48" r="4" fill="#fff6c0"/><circle cx="60" cy="48" r="4" fill="#fff6c0"/>
+    <text x="38" y="52" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" font-family="sans-serif">♥</text></g>
+  <g transform="translate(232 70) rotate(-8)"><rect width="48" height="84" rx="8" fill="#17171c" stroke="#d9d9de" stroke-width="2.5"/><rect x="4" y="8" width="40" height="68" rx="3" fill="#1d2a3d"/>
+    <path d="M24 70 L10 30 M24 70 L38 30" stroke="#ffb020" stroke-width="1.5"/></g>
+  <text x="260" y="186" font-size="24" fill="#fff">👆</text></svg></div><span class="no">3</span>
+      <h2 data-i18n="ob.t3">本物の線路で走らせる</h2><p data-i18n="ob.d3">函館市電の線路にカメラを向けると、じぶんの電車が走ってきます。画面をなぞると動かせます。</p>
+      <div class="safe" data-i18n="ob.safe">⚠ 線路や車道には絶対に入らず、歩道や安全地帯から使ってください。</div></section>
+  </div>
+  <div class="dots" id="obDots"><i class="on"></i><i></i><i></i></div>
+  <div class="btns">
+    <button class="go" id="obNext" data-i18n="ob.next">つぎへ</button>
+    <a class="sub2" id="obHome" href="#" hidden data-i18n="ob.home">ホームを見る</a>
+  </div>
+</div>
+
 <nav class="jt-tabs"></nav>
 
 <script src="lang.js"></script>
@@ -189,6 +258,32 @@
     deferred.prompt(); await deferred.userChoice; deferred = null; $("install").hidden = true;
   };
   $("instX").onclick = () => { $("install").hidden = true; store.set("jatchu_install_closed", "1"); };
+
+  /* ---------- はじめての人向けの案内 ---------- */
+  const ob = $("ob"), slidesEl = $("obSlides"), dots = [...$("obDots").children];
+  let obPage = 0;
+  function obGo(i){ slidesEl.scrollTo({ left: slidesEl.clientWidth * i, behavior: "smooth" }); }
+  function obMark(){
+    obPage = Math.round(slidesEl.scrollLeft / Math.max(1, slidesEl.clientWidth));
+    dots.forEach((d, i) => d.classList.toggle("on", i === obPage));
+    const last = obPage === dots.length - 1;
+    $("obNext").textContent = JL.t(last ? "ob.start" : "ob.next");
+    $("obHome").hidden = !last; $("obSkip").style.visibility = last ? "hidden" : "visible";
+  }
+  function obOpen(){ ob.hidden = false; document.body.style.overflow = "hidden"; slidesEl.scrollLeft = 0; obMark(); }
+  function obClose(){ ob.hidden = true; document.body.style.overflow = ""; store.set("jatchu_onboarded", "1"); }
+  slidesEl.addEventListener("scroll", () => { clearTimeout(slidesEl._t); slidesEl._t = setTimeout(obMark, 60); });
+  $("obNext").onclick = () => {
+    if (obPage < dots.length - 1) obGo(obPage + 1);
+    else { obClose(); location.href = "maker.html?new=1"; }      // 最後は「さっそくつくる」
+  };
+  $("obSkip").onclick = obClose;
+  $("obHome").onclick = (e) => { e.preventDefault(); obClose(); };
+  $("helpBtn").onclick = obOpen;
+  addEventListener("keydown", (e) => { if (!ob.hidden && e.key === "Escape") obClose(); });
+  document.addEventListener("jatchu-lang", obMark);
+  if (!store.get("jatchu_onboarded")) obOpen();
+
 </script>
 </body>
 </html>
