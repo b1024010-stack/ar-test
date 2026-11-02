@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>安全とプライバシー | ジャッチュ</title>
+<script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="ジャッチュ">
+<style>
+  :root{ --bg:#0b0b0c; --amber:#ffb020; --white:#f4f1e8; --pink:#ff5a7a; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--white);font-family:-apple-system,"Hiragino Sans",sans-serif;-webkit-tap-highlight-color:transparent}
+  .wrap{max-width:720px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+  .top{display:flex;align-items:center;gap:10px}
+  .top h1{flex:1;min-width:0;margin:0;font-size:22px;font-weight:900}
+  .lead{margin:8px 0 4px;font-size:14px;color:#c9c9d0;line-height:1.7}
+  h2{margin:26px 0 8px;font-size:17px;color:var(--amber)}
+  .box{padding:12px 14px;border-radius:12px;background:#141417;border:1px solid #2c2c30;font-size:14px;line-height:1.75}
+  .box.warn{background:#3a1416;border-color:#7a2a30}
+  .box ul{margin:0;padding-left:1.2em}
+  .box li{margin:4px 0}
+  table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.6}
+  th,td{padding:9px 8px;border-top:1px solid #2a2a2e;text-align:left;vertical-align:top}
+  th{width:34%;color:#fff;font-weight:700}
+  td{color:#c9c9d0}
+  tr:first-child th,tr:first-child td{border-top:0}
+  .ok{color:#7be0a0;font-weight:700}
+  button.del{display:block;width:100%;margin-top:12px;min-height:50px;border-radius:25px;border:2px solid var(--pink);background:transparent;color:var(--pink);font:inherit;font-size:15px;font-weight:900;cursor:pointer}
+  .small{font-size:12px;color:#8f8f96;line-height:1.7}
+  a{color:#4fd8ff}
+  [data-l]{display:none}
+  html[data-show="ja"] [data-l="ja"], html[data-show="en"] [data-l="en"]{display:block}
+  /* ===== 下のタブ（全ページ共通） ===== */
+  .jt-tabs{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);
+           background:rgba(11,11,12,.96);border-top:1px solid #2a2a2d;padding-bottom:env(safe-area-inset-bottom);
+           -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .jt-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;
+             color:#8a8a90;text-decoration:none;font-size:11px;font-family:-apple-system,"Hiragino Sans",sans-serif}
+  .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
+  .jt-tabs a.on{color:#ffb020}
+  .jt-tabs a.on span{filter:none;opacity:1}
+  .jt-tabs a small{font-size:1em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 data-i18n="pv.title">🛡 安全とプライバシー</h1><div id="langSw"></div></div>
+
+  <!-- ===================== 日本語 ===================== -->
+  <div data-l="ja">
+    <p class="lead">ジャッチュを安心して使ってもらうための約束です。<b>作った電車・写真・カメラの映像・位置は、どこにも送りません。</b></p>
+
+    <h2>⚠ 安全のために</h2>
+    <div class="box warn"><ul>
+      <li><b>線路や車道には、絶対に入らないでください。</b>歩道や電停の安全地帯から使ってください。</li>
+      <li>本物の電車や車が近づいたら、すぐに画面から目を離してください。</li>
+      <li>歩きながら・自転車に乗りながら使わないでください。</li>
+      <li>お店の中では、お店の人やほかのお客さんのじゃまにならないようにしてください。</li>
+      <li>小さな子どもは、大人といっしょに使ってください。</li>
+      <li>ほかの人の顔や車のナンバーが写った写真を、電車に貼らないでください。</li>
+    </ul></div>
+
+    <h2>📱 使う情報と、その使い道</h2>
+    <div class="box"><table>
+      <tr><th>📷 カメラ</th><td>ARで、線路や車内に電車を重ねるため。映像はスマホの中だけで使い、<span class="ok">録画・送信しません</span>。</td></tr>
+      <tr><th>📍 位置・方位</th><td>「走らせる」で、どの線路の近くにいるかを調べるため。<span class="ok">送信・保存しません</span>。</td></tr>
+      <tr><th>🎨 作った電車・写真</th><td>このスマホのブラウザの中にだけ保存します。<span class="ok">サーバーには送らないので、ほかの人には見えません</span>。</td></tr>
+      <tr><th>⚙ 設定</th><td>えらんだことば・案内を見たかどうかなどを、このスマホの中に覚えておきます。</td></tr>
+      <tr><th>📊 アクセス数</th><td>どのページが何回開かれたかを、<a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a> で数えています。名前・Cookie・正確な場所は使わず、<span class="ok">だれが使ったかは分かりません</span>。</td></tr>
+    </table></div>
+    <p class="small">カメラと位置は、使うときにスマホが「許可しますか？」と聞きます。許可しなくても、デザインや3Dで見る機能は使えます。</p>
+
+
+    <h2>🗑 データを消すには</h2>
+    <div class="box">
+      1台ずつ消す：「🚃 じぶんの電車」で電車をタップ →「消す」<br>
+      ぜんぶ消す：下のボタン、またはブラウザの「履歴とWebサイトデータを消去」
+      <button class="del" id="delAll">データをぜんぶ消す</button>
+    </div>
+
+    <p class="small">このページの内容は、アプリを良くするために変わることがあります。<br>最終更新：<span class="upd"></span></p>
+  </div>
+
+  <!-- ===================== English（ほかのことばもこれを表示） ===================== -->
+  <div data-l="en">
+    <p class="lead">Our promise so you can use Jatchu safely. <b>Your trams, photos, camera image and location are never sent anywhere.</b></p>
+
+    <h2>⚠ Stay safe</h2>
+    <div class="box warn"><ul>
+      <li><b>Never step onto the tracks or the road.</b> Use the app from the sidewalk or the tram-stop platform.</li>
+      <li>Look away from the screen as soon as a real tram or car comes near.</li>
+      <li>Do not use the app while walking or cycling.</li>
+      <li>Inside shops, please don't disturb staff or other customers.</li>
+      <li>Young children should use it with an adult.</li>
+      <li>Don't put photos showing other people's faces or license plates on your tram.</li>
+    </ul></div>
+
+    <h2>📱 What we use, and why</h2>
+    <div class="box"><table>
+      <tr><th>📷 Camera</th><td>To place the tram on the real tracks in AR. Used only on your phone — <span class="ok">never recorded or sent</span>.</td></tr>
+      <tr><th>📍 Location / compass</th><td>To find which tracks you're near in "Run". <span class="ok">Never sent or stored</span>.</td></tr>
+      <tr><th>🎨 Your trams & photos</th><td>Saved only in this phone's browser. <span class="ok">Not sent to any server, so nobody else can see them</span>.</td></tr>
+      <tr><th>⚙ Settings</th><td>Your language and whether you've seen the guide are remembered on this phone.</td></tr>
+      <tr><th>📊 Visit counts</th><td>We count page views with <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a>. No names, cookies or exact location — <span class="ok">we can't tell who you are</span>.</td></tr>
+    </table></div>
+    <p class="small">Your phone asks before the camera or location is used. Designing and 3D viewing work without them.</p>
+
+
+    <h2>🗑 Deleting your data</h2>
+    <div class="box">
+      One tram: tap it in "🚃 My trams" → "Delete"<br>
+      Everything: the button below, or clear your browser's website data.
+      <button class="del" id="delAllEn">Delete all Jatchu data on this phone</button>
+    </div>
+
+    <p class="small">This page may change as we improve the app.<br>Last updated: <span class="upd"></span></p>
+  </div>
+</div>
+
+<nav class="jt-tabs"></nav>
+<script src="lang.js"></script>
+<script>
+const UPDATED = "2026年11月";
+document.querySelectorAll(".upd").forEach((e) => (e.textContent = UPDATED));
+JL.switcher(document.getElementById("langSw"));
+
+function show() {
+  const ja = JL.lang === "ja";
+  document.documentElement.dataset.show = ja ? "ja" : "en";
+  document.documentElement.lang = JL.lang;
+  document.title = ja ? "安全とプライバシー | ジャッチュ" : "Safety & Privacy | Jatchu";
+}
+show();
+// ことばを切りかえたとき
+document.addEventListener("jatchu-lang", show);
+
+async function deleteAll() {
+  const ja = JL.lang === "ja";
+  if (!confirm(ja ? "作った電車や設定を、このスマホからぜんぶ消します。元に戻せません。よろしいですか？"
+                  : "This deletes all your trams and settings from this phone. This can't be undone. Continue?")) return;
+  try {
+    await new Promise((ok) => { const r = indexedDB.deleteDatabase("jatchu"); r.onsuccess = r.onerror = r.onblocked = () => ok(); });
+  } catch (e) {}
+  try { Object.keys(localStorage).filter((k) => k.startsWith("jatchu_")).forEach((k) => localStorage.removeItem(k)); } catch (e) {}
+  alert(ja ? "消しました。" : "Deleted.");
+  location.href = "index.html";
+}
+document.getElementById("delAll").onclick = deleteAll;
+document.getElementById("delAllEn").onclick = deleteAll;
+</script>
+</body>
+</html>
