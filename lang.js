@@ -307,6 +307,11 @@
     padding:6px 8px 6px 0;cursor:pointer;outline:none}.jl-sel option{color:#111}`;
   document.head.appendChild(css);
 
+  // オフライン用のしくみ（sw.js）を使い始める。2回目から速く開き、電波がなくても動く
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+
   window.JL = { get lang() { return lang; }, LANGS, t, pick, name, shop, status, apply, set, switcher };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => apply());
   else apply();

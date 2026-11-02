@@ -121,7 +121,7 @@
 
 <div class="viewer">
   <model-viewer id="mv"
-    src="mini-hanamomen.glb?v=5"
+    src="mini-hanamomen.glb?v=6"
     alt="じぶんでデザインした電車がミニチュアの線路を走るモデル"
     ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor" ar-scale="auto"
     camera-controls touch-action="pan-y" camera-orbit="20deg 62deg auto"
@@ -437,7 +437,7 @@ if (isIOS){
     } catch(e){ console.error(e); alert("ARの準備に失敗しました"); }
     btn.textContent = "📷 ARで走らせる";
   };
-  loadTemplate();
+  setTimeout(loadTemplate, 4000);   // ページが表示されてから、ARの準備を始める
 }
 const _update = update;
 update = function(){ _update(); if (isIOS){ clearTimeout(iosTimer); iosTimer = setTimeout(buildIOS, 1200); } };

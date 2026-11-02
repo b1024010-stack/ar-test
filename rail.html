@@ -184,7 +184,7 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.ShadowMa
 ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true; train.add(ground);
 
 let trainReady = false;
-new GLTFLoader().load('tram-hanamomen.glb?v=1', onModel);
+new GLTFLoader().load('tram-hanamomen.glb?v=2', onModel);
 function onModel(gltf) {
   const m = gltf.scene;
   m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
