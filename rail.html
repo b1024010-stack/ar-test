@@ -35,7 +35,7 @@
     #gl, #ov { z-index: 2; }
     #start { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center;
       justify-content: safe center; text-align: center;
-      padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); background: linear-gradient(#1b2a4a, #0b1020); overflow-y: auto; }
+      padding: calc(64px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); background: linear-gradient(#1b2a4a, #0b1020); overflow-y: auto; }
     #start h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: .06em; }
     #start .sub { margin: 0 0 16px; opacity: .8; font-size: 13px; }
     .train { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin: 0 0 12px; padding: 8px 14px; border-radius: 10px; background: rgba(255,255,255,.12); max-width: 100%; }
@@ -58,7 +58,7 @@
     .tb { position: fixed; top: calc(8px + env(safe-area-inset-top)); z-index: 6; font-size: 14px; padding: 0 12px;
       min-height: 40px; display: inline-flex; align-items: center;
       border: 0; border-radius: 8px; background: rgba(0,0,0,.5); color: #ffb020; text-decoration: none; }
-    #back { left: calc(8px + env(safe-area-inset-left)); } #dbgBtn { right: calc(8px + env(safe-area-inset-right)); color: #fff; }
+    #back { left: calc(8px + env(safe-area-inset-left)); z-index: 12; background: rgba(0,0,0,.6); }   /* はじめの画面の上にも出す */ #dbgBtn { right: calc(8px + env(safe-area-inset-right)); color: #fff; }
     #place { position: fixed; left: 50%; transform: translateX(-50%); top: calc(60px + env(safe-area-inset-top)); z-index: 5;
       max-width: calc(100% - 32px); font-size: 12px; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.55);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -78,7 +78,7 @@
     <canvas id="ov"></canvas>
   </div>
 
-  <a class="tb" id="back" href="board.html">← もどる</a>
+  <a class="tb" id="back" href="index.html">← ホーム</a>
   <button class="tb" id="dbgBtn" hidden>DEBUG</button>
   <div id="dbg" hidden>
     <label>焦点 <input id="focal" type="range" min="50" max="130" value="80"><span id="focalV">0.80</span></label>
@@ -138,10 +138,8 @@ if (design) JatchuDB.current = design.id;
 const escH = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 if (design) {
   $('trainName').innerHTML = `<img src="${design.thumb}" alt=""><span>🚋 ${escH(design.name)}</span>`;
-  $('back').href = 'maker.html?id=' + encodeURIComponent(design.id);
 } else {
   $('trainName').innerHTML = '<span>まだ電車をつくっていません（お手本の電車が走ります）</span><a href="maker.html?new=1">🎨 じぶんの電車をつくる →</a>';
-  $('back').href = 'index.html';
 }
 if (designList.length > 1) {                       // ほかの電車にかえる
   $('picks').hidden = false;
