@@ -53,8 +53,8 @@
     .btn.sec { background: transparent; color: #e8c15a; border: 2px solid #e8c15a; }
     .btn input { display: none; }
     /* 走らせるものを選ぶ（電車 / 形と写真） */
-    .runsel { display: flex; gap: 8px; margin: 0 0 12px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.1); }
-    .runsel button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .runsel { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 12px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.1); }
+    .runsel button { min-height: 44px; padding: 0 13px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 15px; font-weight: bold; cursor: pointer; }
     .runsel button.on { background: #e8c15a; color: #1b2a4a; }
     .gogoSet { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 12px; border-radius: 12px; background: rgba(255,255,255,.12); width: min(420px, 100%); }
     #shapePv { display: block; height: 200px; max-width: 100%; }
@@ -126,6 +126,7 @@
     <p class="sub">函館市電の線路をカメラに写すと、じぶんで作った電車が走ってきます</p>
     <div class="runsel" id="runSel">
       <button data-run="tram" class="on">🚋 じぶんの電車</button>
+      <button data-run="robot">🤖 変形ロボ</button>
       <button data-run="gogo">💥 GOGO!</button>
     </div>
     <div class="train" id="trainName">🚋 読み込み中…</div>
@@ -155,6 +156,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createRobot } from './robot.js?v=1';
 
 /* =========================================================
    設定
@@ -193,7 +195,8 @@ const store = { get(k){ try { return localStorage.getItem(k); } catch { return n
 /* ---------- 走らせるもの：じぶんの電車 / ゴーゴーランプ ---------- */
 const LP = window.JatchuLamp;
 let runMode = params.get('run') || store.get('jatchu_runmode') || 'tram';
-if (runMode !== 'gogo') runMode = 'tram';
+if (!['gogo', 'robot'].includes(runMode)) runMode = 'tram';
+const ICON = { tram: '🚋', robot: '🤖', gogo: '💥' };
 let gogoPhoto = store.get('jatchu_gogo_photo');          // ランプから出す写真（このスマホの中だけ・data URL）
 let photoImg = null;
 function showRunMode() {
@@ -201,8 +204,9 @@ function showRunMode() {
   const g = runMode === 'gogo';
   $('gogoSet').hidden = !g; $('trainName').hidden = g;
   $('picks').hidden = g || designList.length <= 1;
-  if (tramModel) tramModel.visible = !g;
+  if (tramModel) tramModel.visible = runMode === 'tram';
   gogo.visible = g;
+  robot.group.visible = runMode === 'robot';
 }
 function showShapeUI() { LP.drawPreview($('shapePv'), photoImg); }
 $('runSel').addEventListener('click', (e) => {
@@ -360,6 +364,64 @@ function updateGogo(now, dt) {
   gogo.rotation.y = Math.atan2(camLocal.x, camLocal.z);
 }
 
+/* ---------- 変形ロボ ----------
+   電車の形で走ってきて、止まるとロボットに変形。しばらくしたら電車にもどって走っていく */
+let robot = createRobot();                               // デザインを読みこむまでは白い電車
+robot.group.visible = false; train.add(robot.group);
+(async () => {                                           // 「つくる」でデザインした柄を貼る
+  if (!design || !design.texture) return;
+  try {
+    const bmp = await createImageBitmap(design.texture);
+    const c = document.createElement('canvas'); c.width = 1885; c.height = 398;
+    c.getContext('2d').drawImage(bmp, 81, 103, 1885, 398, 0, 0, 1885, 398);   // テクスチャの中の、車体の横の所
+    const S = (design.state && design.state.S) || {};
+    const r = createRobot({ sideImage: c, c1: S.c1 || '#ffffff', c2: S.c2 || '#cfd6de' });
+    r.group.visible = robot.group.visible; train.remove(robot.group); train.add(r.group); robot = r;
+  } catch (e) { console.warn(e); }
+})();
+const R = { in: 9, wait: 0.6, tf: 2.4, hold: 7, leave: 9 };   // 来る・止まって待つ・変形・ロボットのまま・去る [秒]
+const R_TF = R.in + R.wait, R_HOLD = R_TF + R.tf, R_BACK = R_HOLD + R.hold, R_GO = R_BACK + R.tf, R_ALL = R_GO + R.leave;
+function robotPos(now) {
+  const t = ((now - t0) / 1000) % R_ALL;
+  const inn = (u) => 1 - (1 - u) * (1 - u), out = (u) => u * u;
+  const far = W.side ? SIDE_RANGE : APPROACH_FROM - STOP_AT, home = W.side ? 0 : STOP_AT, sgn = W.side ? -1 : 1;
+  let x = home, k = 0;
+  if (t < R.in) x = home + sgn * far * (1 - inn(t / R.in));
+  else if (t < R_TF) k = 0;
+  else if (t < R_HOLD) k = (t - R_TF) / R.tf;
+  else if (t < R_BACK) k = 1;
+  else if (t < R_GO) k = 1 - (t - R_BACK) / R.tf;
+  else x = home + far * out((t - R_GO) / R.leave);
+  return { x, k };
+}
+let robotK = 0, robotNear = null, robotCounted = false, robotDone = false;
+const robotCam = new THREE.Vector3();
+function updateRobot(now, dt) {
+  if (!robot.group.visible) return;
+  let k;
+  if (manual == null) k = robotPos(now).k;
+  else {                                              // 手で動かしたとき：止まる所の近くで止めると変形する
+    const d = W.side ? Math.abs(train.position.x) : Math.abs(train.position.x - STOP_AT);
+    const still = !drag && Math.abs(vel) < 0.3;
+    if (d < 1.5 && still) { if (robotNear == null) robotNear = now; } else robotNear = null;
+    const want = robotNear != null && now - robotNear > 500 ? 1 : 0;
+    k = Math.max(0, Math.min(1, robotK + (want ? 1 : -1) * dt / R.tf));
+  }
+  if (k > 0 && robotK === 0 && navigator.vibrate) navigator.vibrate([30, 60, 30, 60, 30]);   // ガシャガシャ
+  if (k >= 1 && !robotDone) {                         // 変形が終わった瞬間
+    robotDone = true; const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    if (!robotCounted && window.jatchuCount) { robotCounted = true; jatchuCount('変形ロボ → 変形した'); }
+  }
+  if (k < 1) robotDone = false;
+  robotK = k;
+  robot.setK(k, now);
+  // ロボットになるほど、カメラの方を向く
+  anchor.updateMatrixWorld(true);
+  robotCam.copy(camera.position); train.worldToLocal(robotCam);
+  const face = Math.atan2(robotCam.z, -robotCam.x), e = k * k * (3 - 2 * k);
+  robot.group.rotation.y = face * e;
+}
+
 let tramModel = null;
 showRunMode(); loadPhoto(gogoPhoto).then(() => { showShapeUI(); buildShape(); });
 let trainReady = false;
@@ -376,7 +438,7 @@ function onModel(gltf) {
       for (const mt of (Array.isArray(o.material) ? o.material : [o.material])) if (mt && mt.name === 'H500_Wrap_Baked') { mt.map = tex; mt.needsUpdate = true; }
     });
   }
-  tramModel = m; m.visible = runMode !== 'gogo';
+  tramModel = m; m.visible = runMode === 'tram';
   train.add(m);                     // モデルは実物大 [m]・X が車体の長さ・Y が上
   trainReady = true;
   if (sourceReady) enableStart();
@@ -800,6 +862,7 @@ function resetPose() { anchor.visible = false; W.pos = W.quat = W.dir = null; W.
 let t0 = performance.now();
 function trainPos(now) {
   if (runMode === 'gogo') return lampPos(now).x;
+  if (runMode === 'robot') return robotPos(now).x;
   const t = ((now - t0) / 1000) % 26;
   const ease = (u) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, u)));
   const inn = (u) => 1 - (1 - u) * (1 - u), out = (u) => u * u;     // 減速しながら止まる／加速して出ていく
@@ -850,16 +913,17 @@ function loop(now) {
   if (anchor.visible && hintT0 == null) hintT0 = now;
   $('dragHint').hidden = !(anchor.visible && manual == null && !hintDone && now - hintT0 < 9000);
   updateView();
-  updateGogo(now, Math.min(0.1, (now - (loop.last || now)) / 1000)); loop.last = now;
+  const fdt = Math.min(0.1, (now - (loop.last || now)) / 1000); loop.last = now;
+  updateGogo(now, fdt); updateRobot(now, fdt);
   renderer.render(scene, camera);
 
   const st = $('status');
   st.hidden = false;
   st.textContent = realSoon ? '本物の電車が通過するまでお待ちください'
     : taps.length === 1 ? 'もう1本のレールをタップしてください'
-    : anchor.visible ? (now - lastFound > 400 ? (runMode === 'gogo' ? '💥' : '🚋') + ' 走行中（レールを探しています）'
-      : manual != null ? `${runMode === 'gogo' ? '💥' : '🚋'} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
-      : `${runMode === 'gogo' ? '💥' : '🚋'} 走行中（${W.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`)
+    : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + ' 走行中（レールを探しています）'
+      : manual != null ? `${ICON[runMode]} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
+      : `${ICON[runMode]} 走行中（${W.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`)
     : '線路を写してください（正面からでも横からでもOK）';
   $('place').textContent = placeText(realMin);
 
