@@ -5,7 +5,7 @@
 
    ■ ファイルを新しくしたら、下の VERSION の数字を1つ増やす
    ========================================================= */
-const VERSION = "jatchu-v5";
+const VERSION = "jatchu-v6";
 // 最初に取っておくもの（このサイトの中）
 const CORE = [
   "./", "index.html", "maker.html", "mine.html", "rail.html", "privacy.html", "gogo.png", "shapes.js?v=3",

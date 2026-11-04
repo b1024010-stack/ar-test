@@ -132,7 +132,7 @@
     <div class="picks" id="picks" hidden></div>
     <div class="gogoSet" id="gogoSet" hidden>
       <canvas id="shapePv" aria-label="ランプが写真に変わったときの見え方"></canvas>
-      <small>真っ暗なランプが線路を流れてきて、まん中で止まると<br>ピカッと光って、ランプがこの写真に変わります</small>
+      <small>真っ暗なランプが線路を流れてきて、まん中で止まると<br>ピカッと光って、すぐにランプがこの写真に変わります</small>
       <label class="btn sec">📷 写真をえらぶ<input type="file" id="gogoIn" accept="image/*"></label>
       <small>写真はこのスマホの中だけで使います（送信しません）</small>
     </div>
@@ -345,15 +345,14 @@ function updateGogo(now, dt) {
   litK += ((litOn ? 1 : 0) - litK) * Math.min(1, dt * 12);
   litMat.opacity = litK; burstMat.opacity = 1; rayMat.opacity = litK * 0.9;
   rays.rotation.z = now / 1000 * 0.8;
-  // 光ってから 0.5秒で、ランプが写真に変わる（消えるときは先にランプにもどる）
-  const phWant = litOn && now - litT > 500 ? 1 : 0;
-  phK = Math.max(0, Math.min(1, phK + (phWant ? 1 : -1.6) * dt / 0.5));
+  // 光ったらすぐ、ランプが写真に変わる
+  const phWant = litOn ? 1 : 0;
+  phK = Math.max(0, Math.min(1, phK + (phWant ? 1 : -1) * dt / 0.12));
   phMat.opacity = phK; photoMesh.visible = phK > 0.001;
   litMat.opacity = litK * (1 - phK);
   // 光ったとき、ランプがぽんっとはねる
   const u = (now - litT) / 1000;
-  const u2 = Math.max(0, u - 0.5);                   // 写真に変わるときにも、もう一度はねる
-  gogoBody.scale.setScalar(litOn ? 1 + 0.18 * Math.exp(-u * 4) * Math.cos(u * 14) + (u > 0.5 ? 0.12 * Math.exp(-u2 * 4) * Math.cos(u2 * 14) : 0) + 0.05 : 1);
+  gogoBody.scale.setScalar(litOn ? 1 + 0.18 * Math.exp(-u * 4) * Math.cos(u * 14) + 0.05 : 1);
   gogoBody.rotation.z = 0;
   // いつもカメラの方を向く（線路の上で、縦の軸だけ回す）
   anchor.updateMatrixWorld(true);
