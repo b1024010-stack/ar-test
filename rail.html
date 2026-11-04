@@ -52,6 +52,23 @@
       background: #e8c15a; color: #1b2a4a; font-weight: bold; text-align: center; cursor: pointer; }
     .btn.sec { background: transparent; color: #e8c15a; border: 2px solid #e8c15a; }
     .btn input { display: none; }
+    /* 走らせるものを選ぶ（電車 / 形と写真） */
+    .runsel { display: flex; gap: 8px; margin: 0 0 12px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.1); }
+    .runsel button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .runsel button.on { background: #e8c15a; color: #1b2a4a; }
+    .gogoSet { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 12px; border-radius: 12px; background: rgba(255,255,255,.12); width: min(420px, 100%); }
+    #shapePv { display: block; height: 200px; max-width: 100%; }
+    .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    .chips button { min-width: 44px; min-height: 44px; padding: 0 10px; border: 2px solid transparent; border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+    .chips button span { font-size: 20px; display: block; line-height: 1.1; }
+    .chips button.on { border-color: #e8c15a; background: rgba(232,193,90,.2); }
+    .chips.colors button { min-width: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 50%; border: 3px solid rgba(255,255,255,.3); }
+    .chips.colors button.on { border-color: #fff; box-shadow: 0 0 0 2px #e8c15a; }
+    .gogoSet small { font-size: 12px; opacity: .85; }
+    .gogoSet .btn { min-height: 44px; font-size: 15px; padding: 9px 18px; margin: 0; }
+    #flash { position: fixed; inset: 0; z-index: 6; pointer-events: none; background: radial-gradient(circle, rgba(255,245,180,.85), rgba(255,210,60,.35) 60%, transparent); opacity: 0; }
+    #flash.go { animation: flash .6s ease-out; }
+    @keyframes flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
     #msg { font-size: 12px; opacity: .7; margin-top: 10px; min-height: 1em; }
     #status { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
       max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; padding: 10px 18px; border-radius: 999px; background: rgba(0,0,0,.6); font-size: 14px; white-space: nowrap; z-index: 5; }
@@ -97,6 +114,7 @@
     <div id="info"></div>
   </div>
   <div id="status" hidden></div>
+  <div id="flash"></div>
   <div id="dragHint" hidden>👆 画面をなぞると、電車を自分で動かせます</div>
   <button id="autoBtn" hidden>▶ 自動で走らせる</button>
   <div id="place"></div>
@@ -106,8 +124,18 @@
   <div id="start">
     <h1>本物の線路で走らせる</h1>
     <p class="sub">函館市電の線路をカメラに写すと、じぶんで作った電車が走ってきます</p>
+    <div class="runsel" id="runSel">
+      <button data-run="tram" class="on">🚋 じぶんの電車</button>
+      <button data-run="gogo">💥 GOGO!</button>
+    </div>
     <div class="train" id="trainName">🚋 読み込み中…</div>
     <div class="picks" id="picks" hidden></div>
+    <div class="gogoSet" id="gogoSet" hidden>
+      <canvas id="shapePv" aria-label="ランプが写真に変わったときの見え方"></canvas>
+      <small>真っ暗なランプが線路を流れてきて、まん中で止まると<br>ピカッと光って、ランプがこの写真に変わります</small>
+      <label class="btn sec">📷 写真をえらぶ<input type="file" id="gogoIn" accept="image/*"></label>
+      <small>写真はこのスマホの中だけで使います（送信しません）</small>
+    </div>
     <div class="warn">
       <b>⚠ 安全のために</b><br>
       ・<b>線路や車道には絶対に立ち入らず</b>、歩道や安全地帯から使ってください<br>
@@ -123,6 +151,7 @@
 
 <script src="lang.js"></script>
 <script src="designs.js"></script>
+<script src="shapes.js?v=3"></script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -161,6 +190,46 @@ if (designList.length > 1) {                       // ほかの電車にかえ�
 /* ---------- 端末に保存する設定 ---------- */
 const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } },
                 set(k,v){ try { localStorage.setItem(k,v); } catch {} } };
+/* ---------- 走らせるもの：じぶんの電車 / ゴーゴーランプ ---------- */
+const LP = window.JatchuLamp;
+let runMode = params.get('run') || store.get('jatchu_runmode') || 'tram';
+if (runMode !== 'gogo') runMode = 'tram';
+let gogoPhoto = store.get('jatchu_gogo_photo');          // ランプから出す写真（このスマホの中だけ・data URL）
+let photoImg = null;
+function showRunMode() {
+  document.querySelectorAll('#runSel button').forEach((b) => b.classList.toggle('on', b.dataset.run === runMode));
+  const g = runMode === 'gogo';
+  $('gogoSet').hidden = !g; $('trainName').hidden = g;
+  $('picks').hidden = g || designList.length <= 1;
+  if (tramModel) tramModel.visible = !g;
+  gogo.visible = g;
+}
+function showShapeUI() { LP.drawPreview($('shapePv'), photoImg); }
+$('runSel').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  runMode = b.dataset.run; store.set('jatchu_runmode', runMode); showRunMode();
+  t0 = performance.now(); manual = null;                 // 切りかえたら最初から
+});
+function loadPhoto(src) {
+  if (!src) { photoImg = null; return Promise.resolve(); }
+  return new Promise((ok) => { const im = new Image(); im.onload = () => { photoImg = im; ok(); }; im.onerror = () => ok(); im.src = src; });
+}
+// えらんだ写真を、正方形 512px に切り抜いて保存する
+$('gogoIn').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f);
+  try {
+    const im = new Image(); im.src = url; await im.decode();
+    const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+    const sc = Math.max(S / im.naturalWidth, S / im.naturalHeight), w = im.naturalWidth * sc, h = im.naturalHeight * sc;
+    c.getContext('2d').drawImage(im, (S - w) / 2, (S - h) / 2, w, h);
+    gogoPhoto = c.toDataURL('image/jpeg', 0.85);
+    store.set('jatchu_gogo_photo', gogoPhoto);
+    await loadPhoto(gogoPhoto); showShapeUI(); buildShape();
+  } catch (err) { $('msg').textContent = '写真を読み込めませんでした'; }
+  URL.revokeObjectURL(url); e.target.value = '';
+};
+
 let focalRatio = +(params.get('f') || store.get('railFocal') || 0.8);
 let sens = +(store.get('railSens') || 35);
 $('focal').value = Math.round(focalRatio * 100); $('focalV').textContent = focalRatio.toFixed(2);
@@ -195,6 +264,105 @@ train.add(sun); sun.target = train;
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.ShadowMaterial({ opacity: 0.35 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = 0.01; ground.receiveShadow = true; train.add(ground);
 
+/* ---------- ゴーゴーランプ ----------
+   1. 真っ暗なランプが線路を流れてくる
+   2. まん中（止まる所）に来ると止まる
+   3. ピカッと光って、ランプが写真に変わる
+   しばらくしたらランプにもどって、消えて、また走っていく */
+const LAMP_H = 2.0;                                // ランプの高さ [m]
+const LAMP_W = LAMP_H * LP.ASPECT;
+const LAMP_Y = 0.35 + LAMP_H / 2;                  // ランプのまん中の高さ [m]
+const gogo = new THREE.Group(); gogo.visible = false; train.add(gogo);
+const gogoBody = new THREE.Group(); gogoBody.position.y = LAMP_Y; gogo.add(gogoBody);
+const baseCv = document.createElement('canvas'), litCv = document.createElement('canvas'), phCv = document.createElement('canvas');
+const baseTex = new THREE.CanvasTexture(baseCv), litTex = new THREE.CanvasTexture(litCv), phTex = new THREE.CanvasTexture(phCv);
+baseTex.colorSpace = litTex.colorSpace = phTex.colorSpace = THREE.SRGBColorSpace;
+const mat = (o) => new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide, toneMapped: false, ...o });
+const burstMat = mat({ map: baseTex, alphaTest: 0.05 });
+const litMat = mat({ map: litTex, opacity: 0, depthWrite: false });
+const phMat = mat({ map: phTex, opacity: 0, depthWrite: false });
+const z0 = LP.size(), padW = LAMP_W * z0.w / z0.iw, padH = LAMP_H * z0.h / z0.ih;
+const burst = new THREE.Mesh(new THREE.PlaneGeometry(padW, padH), burstMat); burst.castShadow = true; gogoBody.add(burst);
+const litMesh = new THREE.Mesh(new THREE.PlaneGeometry(padW, padH), litMat); litMesh.position.z = 0.02; gogoBody.add(litMesh);
+const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(padW, padH), phMat); photoMesh.position.z = 0.04; photoMesh.visible = false; gogoBody.add(photoMesh);
+// うしろでくるくる回る光の線
+const rayCv = document.createElement('canvas'); rayCv.width = rayCv.height = 512;
+{
+  const x = rayCv.getContext('2d'), g = x.createRadialGradient(256, 256, 20, 256, 256, 256);
+  g.addColorStop(0, 'rgba(255,250,200,1)'); g.addColorStop(0.5, 'rgba(255,215,60,.7)'); g.addColorStop(1, 'rgba(255,200,0,0)');
+  x.fillStyle = g;
+  for (let i = 0; i < 18; i++) {
+    const a = i / 18 * Math.PI * 2;
+    x.beginPath(); x.moveTo(256, 256); x.arc(256, 256, 256, a, a + Math.PI / 30); x.closePath(); x.fill();
+  }
+}
+const rayTex = new THREE.CanvasTexture(rayCv); rayTex.colorSpace = THREE.SRGBColorSpace;
+const rayMat = mat({ map: rayTex, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+const rays = new THREE.Mesh(new THREE.PlaneGeometry(LAMP_W * 2.2, LAMP_W * 2.2), rayMat); rays.position.z = -0.05; gogoBody.add(rays);
+
+async function buildShape() {
+  await LP.drawLamp(baseCv, false); await LP.drawLamp(litCv, true); await LP.drawPhotoLamp(phCv, photoImg);
+  baseTex.needsUpdate = litTex.needsUpdate = phTex.needsUpdate = true;
+}
+
+// 自動のときの動き（1周 30秒）
+const G = { in: 9, wait: 0.8, out: 9.5, back: 0.6, leave: 9 };   // 来る・止まって待つ・写真を出しておく・消える・去る [秒]
+const G_LIT = G.in + G.wait, G_OFF = G_LIT + G.out, G_GO = G_OFF + G.back, G_ALL = G_GO + G.leave;
+function lampPos(now) {
+  const t = ((now - t0) / 1000) % G_ALL;
+  const inn = (u) => 1 - (1 - u) * (1 - u), out = (u) => u * u;
+  const far = W.side ? SIDE_RANGE : APPROACH_FROM - STOP_AT, home = W.side ? 0 : STOP_AT, sgn = W.side ? -1 : 1;
+  let x = home, lit = false;
+  if (t < G.in) x = home + sgn * far * (1 - inn(t / G.in));
+  else if (t < G_LIT) x = home;
+  else if (t < G_OFF) lit = true;
+  else if (t < G_GO) x = home;
+  else x = home + far * out((t - G_GO) / G.leave);
+  return { x, lit };
+}
+
+// 毎フレーム：カメラの方を向く・止まったら光って写真を出す
+const GOGO_NEAR = 1.2;                // 手で動かしたとき：止まる所から何m以内で光るか
+let litK = 0, litOn = false, litT = 0, phK = 0, gogoCounted = false, nearSince = null;
+const camLocal = new THREE.Vector3();
+function updateGogo(now, dt) {
+  if (!gogo.visible) return;
+  let want;
+  if (manual == null) want = lampPos(now).lit;
+  else {                                              // 手で動かしたとき：止まる所の近くで、止まっていたら光る
+    const d = W.side ? Math.abs(train.position.x) : Math.abs(train.position.x - STOP_AT);
+    const still = !drag && Math.abs(vel) < 0.3;
+    if (d < GOGO_NEAR && still) { if (nearSince == null) nearSince = now; } else nearSince = null;
+    want = litOn ? d < GOGO_NEAR + 0.8 : nearSince != null && now - nearSince > 500;
+  }
+  if (!anchor.visible) want = false;
+  if (want && !litOn) {                               // 光った瞬間
+    litT = now; const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    if (navigator.vibrate) navigator.vibrate(40);
+    if (!gogoCounted && window.jatchuCount) { gogoCounted = true; jatchuCount('ゴーゴーランプ → 光った'); }
+  }
+  litOn = want;
+  litK += ((litOn ? 1 : 0) - litK) * Math.min(1, dt * 12);
+  litMat.opacity = litK; burstMat.opacity = 1; rayMat.opacity = litK * 0.9;
+  rays.rotation.z = now / 1000 * 0.8;
+  // 光ってから 0.5秒で、ランプが写真に変わる（消えるときは先にランプにもどる）
+  const phWant = litOn && now - litT > 500 ? 1 : 0;
+  phK = Math.max(0, Math.min(1, phK + (phWant ? 1 : -1.6) * dt / 0.5));
+  phMat.opacity = phK; photoMesh.visible = phK > 0.001;
+  litMat.opacity = litK * (1 - phK);
+  // 光ったとき、ランプがぽんっとはねる
+  const u = (now - litT) / 1000;
+  const u2 = Math.max(0, u - 0.5);                   // 写真に変わるときにも、もう一度はねる
+  gogoBody.scale.setScalar(litOn ? 1 + 0.18 * Math.exp(-u * 4) * Math.cos(u * 14) + (u > 0.5 ? 0.12 * Math.exp(-u2 * 4) * Math.cos(u2 * 14) : 0) + 0.05 : 1);
+  gogoBody.rotation.z = 0;
+  // いつもカメラの方を向く（線路の上で、縦の軸だけ回す）
+  anchor.updateMatrixWorld(true);
+  camLocal.copy(camera.position); train.worldToLocal(camLocal);
+  gogo.rotation.y = Math.atan2(camLocal.x, camLocal.z);
+}
+
+let tramModel = null;
+showRunMode(); loadPhoto(gogoPhoto).then(() => { showShapeUI(); buildShape(); });
 let trainReady = false;
 new GLTFLoader().load('tram-hanamomen.glb?v=2', onModel);
 function onModel(gltf) {
@@ -209,6 +377,7 @@ function onModel(gltf) {
       for (const mt of (Array.isArray(o.material) ? o.material : [o.material])) if (mt && mt.name === 'H500_Wrap_Baked') { mt.map = tex; mt.needsUpdate = true; }
     });
   }
+  tramModel = m; m.visible = runMode !== 'gogo';
   train.add(m);                     // モデルは実物大 [m]・X が車体の長さ・Y が上
   trainReady = true;
   if (sourceReady) enableStart();
@@ -631,6 +800,7 @@ function resetPose() { anchor.visible = false; W.pos = W.quat = W.dir = null; W.
    横　：画面の端から入ってきて正面で止まり、反対側へ走り去る */
 let t0 = performance.now();
 function trainPos(now) {
+  if (runMode === 'gogo') return lampPos(now).x;
   const t = ((now - t0) / 1000) % 26;
   const ease = (u) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, u)));
   const inn = (u) => 1 - (1 - u) * (1 - u), out = (u) => u * u;     // 減速しながら止まる／加速して出ていく
@@ -664,6 +834,13 @@ function loop(now) {
   }
   else if (now - lastFound > (gyroOK() ? HOLD_MS_GYRO : HOLD_MS_NOGYRO)) { resetPose(); prev = null; if (now - lastFound > HOLD_MS_GYRO + 2000) pick = null; }
   else if (gyroOK()) prev = null;            // 見失っている間はジャイロで保つ（前回の候補に引っぱられないように）
+  // テスト用： ?fakepose=1（正面）/ ?fakepose=side（横）で、線路があることにして表示を確かめる
+  if (params.has('fakepose')) {
+    const side = params.get('fakepose') === 'side';
+    W.pos = side ? new THREE.Vector3(0, -1.4, -7) : new THREE.Vector3(0.8, -1.4, 0);
+    W.quat = side ? new THREE.Quaternion() : new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+    W.dir = new THREE.Vector3(1, 0, 0).applyQuaternion(W.quat); W.side = side; anchor.visible = true;
+  }
   // 本物の電車がもうすぐ来るとき（線路の近くにいるときだけ）は、ARの電車を隠して知らせる
   const realMin = REAL_DATA && near && !near.far && near.dist < 40 ? nextRealTramMin() : Infinity;
   const realSoon = realMin < 0.5;
@@ -674,15 +851,16 @@ function loop(now) {
   if (anchor.visible && hintT0 == null) hintT0 = now;
   $('dragHint').hidden = !(anchor.visible && manual == null && !hintDone && now - hintT0 < 9000);
   updateView();
+  updateGogo(now, Math.min(0.1, (now - (loop.last || now)) / 1000)); loop.last = now;
   renderer.render(scene, camera);
 
   const st = $('status');
   st.hidden = false;
   st.textContent = realSoon ? '本物の電車が通過するまでお待ちください'
     : taps.length === 1 ? 'もう1本のレールをタップしてください'
-    : anchor.visible ? (now - lastFound > 400 ? '🚋 走行中（レールを探しています）'
-      : manual != null ? `🚋 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
-      : `🚋 走行中（${W.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`)
+    : anchor.visible ? (now - lastFound > 400 ? (runMode === 'gogo' ? '💥' : '🚋') + ' 走行中（レールを探しています）'
+      : manual != null ? `${runMode === 'gogo' ? '💥' : '🚋'} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
+      : `${runMode === 'gogo' ? '💥' : '🚋'} 走行中（${W.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`)
     : '線路を写してください（正面からでも横からでもOK）';
   $('place').textContent = placeText(realMin);
 
