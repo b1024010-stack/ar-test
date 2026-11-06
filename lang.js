@@ -25,6 +25,8 @@
     "tab.mine":    L("じぶんの電車", "My trams", "我的電車", "我的电车", "내 전차"),
     "pv.title":    L("🛡 安全とプライバシー", "🛡 Safety & Privacy", "🛡 安全與隱私", "🛡 安全与隐私", "🛡 안전과 개인정보"),
     "pv.link":     L("安全とプライバシー", "Safety & Privacy", "安全與隱私", "安全与隐私", "안전과 개인정보"),
+    "tm.title":    L("📜 利用規約", "📜 Terms of Use", "📜 使用條款", "📜 使用条款", "📜 이용약관"),
+    "tm.link":     L("利用規約", "Terms of Use", "使用條款", "使用条款", "이용약관"),
     "tab.run":     L("走らせる", "Run", "奔跑", "奔跑", "달리기"),
     "tab.maker":  L("つくる", "Create", "製作", "制作", "만들기"),
     "car":        L("{name}号", "{name} Tram", "{name}號", "{name}号", "{name} 호"),
