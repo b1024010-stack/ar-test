@@ -195,7 +195,11 @@ const store = { get(k){ try { return localStorage.getItem(k); } catch { return n
 /* ---------- 走らせるもの：じぶんの電車 / ゴーゴーランプ ---------- */
 const LP = window.JatchuLamp;
 let runMode = params.get('run') || store.get('jatchu_runmode') || 'tram';
-if (!['gogo', 'robot'].includes(runMode)) runMode = 'tram';
+// 出す・出さないの切りかえ（false にすると、その機能のボタンが消える）
+const SHOW = { robot: true, gogo: false };   // ゴーゴーランプは一時的に止めている（もどすときは gogo: true）
+if (!['gogo', 'robot'].includes(runMode) || !SHOW[runMode]) runMode = 'tram';
+document.querySelectorAll('#runSel button').forEach((b) => { if (b.dataset.run !== 'tram' && !SHOW[b.dataset.run]) b.remove(); });
+if (document.querySelectorAll('#runSel button').length < 2) $('runSel').hidden = true;
 const ICON = { tram: '🚋', robot: '🤖', gogo: '💥' };
 let gogoPhoto = store.get('jatchu_gogo_photo');          // ランプから出す写真（このスマホの中だけ・data URL）
 let photoImg = null;
