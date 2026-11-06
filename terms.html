@@ -6,6 +6,8 @@
 <title>利用規約 | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">  <!-- アプリの文字（UDゴシック） -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,7 +18,7 @@
 <style>
   :root{ --bg:#0b0b0c; --amber:#ffb020; --white:#f4f1e8; --pink:#ff5a7a; }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--white);font-family:-apple-system,"Hiragino Sans",sans-serif;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--white);font-family:"BIZ UDPGothic",-apple-system,"Hiragino Sans",sans-serif;-webkit-tap-highlight-color:transparent}
   .wrap{max-width:720px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
   .top{display:flex;align-items:center;gap:10px}
   .top h1{flex:1;min-width:0;margin:0;font-size:22px;font-weight:900}
@@ -45,11 +47,12 @@
            background:rgba(11,11,12,.96);border-top:1px solid #2a2a2d;padding-bottom:env(safe-area-inset-bottom);
            -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
   .jt-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;
-             color:#8a8a90;text-decoration:none;font-size:11px;font-family:-apple-system,"Hiragino Sans",sans-serif}
+             color:#8a8a90;text-decoration:none;font-size:11px;font-family:"BIZ UDPGothic",-apple-system,"Hiragino Sans",sans-serif}
   .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
   .jt-tabs a small{font-size:1em}
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body>

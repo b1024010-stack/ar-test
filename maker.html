@@ -6,6 +6,8 @@
   <title>じぶんの電車をつくる | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">  <!-- アプリの文字（UDゴシック） -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -21,7 +23,7 @@
   <style>
     :root { --ink:#1c2a44; --line:#d5dbe2; --bg:#e9eef3; --amber:#ffb020; }
     * { box-sizing:border-box; }
-    body { margin:0; font-family:sans-serif; background:#fff; color:var(--ink); }
+    body { margin:0; font-family:"BIZ UDPGothic",-apple-system,"Hiragino Sans",sans-serif; background:#fff; color:var(--ink); }
 
     /* 上：電車のモデル（スクロールしても上に残る）。画面の4割くらいにして、下の設定を広く */
     .viewer { position:sticky; top:0; z-index:2; height:42vh; height:42svh; min-height:240px; background:var(--bg);
@@ -111,13 +113,14 @@
            background:rgba(11,11,12,.96);border-top:1px solid #2a2a2d;padding-bottom:env(safe-area-inset-bottom);
            -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
   .jt-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;
-             color:#8a8a90;text-decoration:none;font-size:11px;font-family:-apple-system,"Hiragino Sans",sans-serif;letter-spacing:0}
+             color:#8a8a90;text-decoration:none;font-size:11px;font-family:"BIZ UDPGothic",-apple-system,"Hiragino Sans",sans-serif;letter-spacing:0}
   .jt-tabs a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
   .jt-tabs a small{font-size:1em}
   .txtNg{margin-top:6px;padding:6px 10px;border-radius:8px;background:#3a1416;border:1px solid #7a2a30;color:#ffb3b3;font-size:12px;line-height:1.5}
   [aria-invalid="true"]{outline:2px solid #ff5a7a}
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body>
