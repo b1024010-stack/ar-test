@@ -5,11 +5,11 @@
 
    ■ ファイルを新しくしたら、下の VERSION の数字を1つ増やす
    ========================================================= */
-const VERSION = "jatchu-v8";
+const VERSION = "jatchu-v10";
 // 最初に取っておくもの（このサイトの中）
 const CORE = [
   "./", "index.html", "maker.html", "mine.html", "rail.html", "privacy.html", "terms.html", "gogo.png", "shapes.js?v=3", "robot.js?v=1",
-  "lang.js", "designs.js", "count.js", "manifest.json",
+  "lang.js", "guard.js", "designs.js", "count.js", "manifest.json",
   "icon-192.png", "icon-512.png", "apple-touch-icon.png",
   "wrap-base.jpg?v=1", "mini-hanamomen.glb?v=6", "tram-hanamomen.glb?v=2",
 ];

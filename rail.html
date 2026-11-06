@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>本物の線路で走らせる（試作） | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
+<script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -81,6 +82,23 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #realWarn { position: fixed; left: 16px; right: 16px; top: 40%; z-index: 7; text-align: center; padding: 16px; border-radius: 12px;
       background: rgba(180,20,20,.9); font-size: 16px; font-weight: bold; line-height: 1.6; }
+    /* 安全のやくそく */
+    .pledge { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.7); }
+    .pl { width: min(420px, 100%); max-height: 100%; overflow: auto; padding: 18px 16px; border-radius: 16px; background: #1b2a4a; border: 2px solid #e8c15a; text-align: left; }
+    .pl h2 { margin: 0 0 4px; font-size: 20px; text-align: center; }
+    .pl p { margin: 0 0 12px; font-size: 13px; opacity: .85; text-align: center; }
+    .pl label { display: flex; align-items: center; gap: 10px; min-height: 52px; margin: 8px 0; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: bold; line-height: 1.5; cursor: pointer; }
+    .pl label:has(input:checked) { background: rgba(123,224,160,.18); }
+    .pl input { flex: none; width: 24px; height: 24px; accent-color: #7be0a0; }
+    .pl .btn:disabled { opacity: .4; }
+    /* 歩いているときの注意 */
+    #walkWarn { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px;
+      background: rgba(10,14,26,.88); text-align: center; font-size: 15px; line-height: 1.7; }
+    #walkWarn b { font-size: 22px; }
+    #walkWarn .ic { font-size: 56px; }
+    #wm { position: fixed; left: calc(8px + env(safe-area-inset-left)); bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 5; display: flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: bold; opacity: .75; pointer-events: none; text-shadow: 0 1px 2px #000; }
+    #wm img { width: 16px; height: 16px; border-radius: 4px; }
     #osm { position: fixed; right: calc(6px + env(safe-area-inset-right)); bottom: calc(2px + env(safe-area-inset-bottom)); z-index: 5; font-size: 9px; opacity: .6; }
     #dbg { position: fixed; top: calc(56px + env(safe-area-inset-top)); right: 8px; z-index: 6; width: 210px;
       background: rgba(0,0,0,.65); padding: 8px; border-radius: 8px; font-size: 11px; line-height: 1.6; }
@@ -115,6 +133,19 @@
   </div>
   <div id="status" hidden></div>
   <div id="flash"></div>
+  <div id="walkWarn" hidden role="alert"><div class="ic">🚶‍♀️✋</div><b>歩きながらは使えません</b><div>立ち止まると、また電車が出てきます。<br>まわりをよく見てね。</div></div>
+  <div id="pledge" class="pledge" hidden role="dialog" aria-modal="true" aria-labelledby="plT">
+    <div class="pl">
+      <h2 id="plT">🤝 安全のやくそく</h2>
+      <p>カメラを使う前に、3つ約束してね（ぜんぶ✓すると始められます）</p>
+      <label><input type="checkbox" class="plc"> 線路や車道には、ぜったいに入りません</label>
+      <label><input type="checkbox" class="plc"> 立ち止まって、歩道や電停の安全な所から使います</label>
+      <label><input type="checkbox" class="plc"> 電車や車が来たら、すぐに画面から目をはなします</label>
+      <button class="btn" id="plOk" disabled>やくそくして始める</button>
+      <button class="btn sec" id="plNo">やめる</button>
+    </div>
+  </div>
+  <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
   <div id="dragHint" hidden>👆 画面をなぞると、電車を自分で動かせます</div>
   <button id="autoBtn" hidden>▶ 自動で走らせる</button>
   <div id="place"></div>
@@ -495,6 +526,35 @@ function onCompass(e) {
   if (camHeading == null) camHeading = h;
   else { const dd = ((h - camHeading + 540) % 360) - 180; camHeading = (camHeading + dd * 0.2 + 360) % 360; }
 }
+/* ---------- 歩いているかどうか（歩きスマホを止める） ----------
+   スマホのゆれ（加速度の大きさのばらつき）が大きい状態が続いたら「歩いている」とみなす。
+   位置情報の速さ（秒速1.2m以上）でも判断する */
+const WALK_ON = 1.4, WALK_OFF = 0.7;   // ゆれの大きさ [m/s²]：これより大きいと歩いている／小さいと止まっている
+const walk = { buf: [], on: false, hi: null, lo: null, speed: 0, counted: false };
+function onMotion(e) {
+  const a = e.accelerationIncludingGravity; if (!a || a.x == null) return;
+  const t = performance.now();
+  walk.buf.push([t, Math.hypot(a.x, a.y, a.z)]);
+  while (walk.buf.length && t - walk.buf[0][0] > 1500) walk.buf.shift();
+}
+function updateWalk(now) {
+  if (!useSensor) return false;
+  let sd = 0;
+  if (walk.buf.length > 15) {
+    const m = walk.buf.reduce((s, v) => s + v[1], 0) / walk.buf.length;
+    sd = Math.sqrt(walk.buf.reduce((s, v) => s + (v[1] - m) ** 2, 0) / walk.buf.length);
+  }
+  const moving = sd > WALK_ON || walk.speed > 1.2, still = sd < WALK_OFF && walk.speed < 0.6;
+  if (moving) { walk.lo = null; if (walk.hi == null) walk.hi = now; } else walk.hi = null;
+  if (still) { if (walk.lo == null) walk.lo = now; } else walk.lo = null;
+  if (!walk.on && walk.hi != null && now - walk.hi > 800) {
+    walk.on = true;
+    if (!walk.counted && window.jatchuCount) { walk.counted = true; jatchuCount('安全 → 歩きスマホで止めた'); }
+  }
+  if (walk.on && walk.lo != null && now - walk.lo > 1500) walk.on = false;
+  return walk.on;
+}
+
 function enableSensors() {
   const DOE = window.DeviceOrientationEvent; if (!DOE) return;
   const listen = () => {
@@ -502,8 +562,13 @@ function enableSensors() {
     addEventListener('deviceorientation', onCompass);
     addEventListener('deviceorientationabsolute', onCompass);
   };
+  const DME = window.DeviceMotionEvent;
+  const listenMotion = () => addEventListener('devicemotion', onMotion);
+  // iPhone は、ボタンを押したその場で許可を聞く必要があるので、2つ同時に聞く
+  const pm = DME && typeof DME.requestPermission === 'function' ? DME.requestPermission() : null;
   if (typeof DOE.requestPermission === 'function') DOE.requestPermission().then((r) => r === 'granted' && listen()).catch(() => {});
   else listen();
+  if (pm) pm.then((r) => r === 'granted' && listenMotion()).catch(() => {}); else if (DME) listenMotion();
 }
 // ジャイロ（端末の回転）が使えるか
 const gyroOK = () => useSensor && devEuler && performance.now() - devEuler.t < 500;
@@ -569,6 +634,7 @@ function startGeo() {
   if (!navigator.geolocation) return;
   navigator.geolocation.watchPosition((p) => {
     geo = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
+    walk.speed = p.coords.speed > 0 ? p.coords.speed : 0;
     updateNear();
   }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 }
@@ -912,6 +978,9 @@ function loop(now) {
   const realSoon = realMin < 0.5;
   $('realWarn').hidden = !realSoon;
   if (realSoon) anchor.visible = false;
+  const walking = updateWalk(now);
+  $('walkWarn').hidden = !walking;
+  if (walking) anchor.visible = false;
   if (trainReady) train.position.set(trainPosNow(now), 0, 0);
   $('autoBtn').hidden = manual == null || !anchor.visible;
   if (anchor.visible && hintT0 == null) hintT0 = now;
@@ -923,7 +992,7 @@ function loop(now) {
 
   const st = $('status');
   st.hidden = false;
-  st.textContent = realSoon ? '本物の電車が通過するまでお待ちください'
+  st.textContent = walking ? '🚶 立ち止まってね' : realSoon ? '本物の電車が通過するまでお待ちください'
     : taps.length === 1 ? 'もう1本のレールをタップしてください'
     : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + ' 走行中（レールを探しています）'
       : manual != null ? `${ICON[runMode]} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
@@ -1060,11 +1129,19 @@ function startFile(file) {
   video.src = url; video.loop = true;
   video.onloadedmetadata = async () => { await video.play().catch(() => {}); setSource(video, video.videoWidth, video.videoHeight); };
 }
+// 安全のやくそく：ぜんぶ✓したら始められる（カメラで始めるたびに出す）
+function openPledge() {
+  document.querySelectorAll('.plc').forEach((c) => (c.checked = false));
+  $('plOk').disabled = true; $('pledge').hidden = false;
+}
+$('pledge').addEventListener('change', () => { $('plOk').disabled = ![...document.querySelectorAll('.plc')].every((c) => c.checked); });
+$('plNo').onclick = () => { $('pledge').hidden = true; };
+$('plOk').onclick = () => { $('pledge').hidden = true; if (window.jatchuCount) jatchuCount('安全 → やくそくした'); startCamera(); };
 $('fileIn').onchange = (e) => { const f = e.target.files[0]; if (f) startFile(f); };
 
 function enableStart() {
   $('camBtn').disabled = false; $('camBtn').textContent = '📷 カメラで始める';
-  $('camBtn').onclick = startCamera;
+  $('camBtn').onclick = openPledge;
 }
 // テスト用： ?img=画像のURL でその画像を使う
 if (params.get('img')) {

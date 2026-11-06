@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>じぶんの電車をつくる | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
+<script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -115,6 +116,8 @@
   .jt-tabs a.on{color:#ffb020}
   .jt-tabs a.on span{filter:none;opacity:1}
   .jt-tabs a small{font-size:1em}
+  .txtNg{margin-top:6px;padding:6px 10px;border-radius:8px;background:#3a1416;border:1px solid #7a2a30;color:#ffb3b3;font-size:12px;line-height:1.5}
+  [aria-invalid="true"]{outline:2px solid #ff5a7a}
 </style>
 </head>
 <body>
@@ -164,6 +167,7 @@
   <div class="sec">
     <h2>③ 文字<small>電車の名前やメッセージ</small></h2>
     <input type="text" id="txt" maxlength="14" value="" placeholder="例：いちご号（なくてもOK）">
+    <div id="txtNg" class="txtNg" role="alert" hidden></div>
     <div class="row" style="margin-top:10px">
       <label class="small">文字の色</label>
       <input type="color" id="c3" value="#1c2a44">
@@ -264,7 +268,14 @@ options($("pats"), PATTERNS, "pat", 1);
 FONTS.forEach((f,i)=>{}); options($("fonts"), FONTS, "font", 1);
 $("fonts").querySelectorAll(".opt").forEach((b,i)=> b.style.fontFamily = FONTS[i][0]);
 $("c3").oninput = () => { S.c3 = $("c3").value; update(); };
-$("txt").oninput = () => { S.text = $("txt").value; update(); };
+// 広告のような言葉（URL・電話番号・値段・セールなど）は使えない（guard.js）
+$("txt").oninput = () => {
+  const why = window.JatchuGuard && JatchuGuard.check($("txt").value);
+  $("txtNg").hidden = !why;
+  if (why){ $("txtNg").textContent = "⚠ 広告のような言葉（" + why + "）は使えません"; $("txt").setAttribute("aria-invalid", "true"); return; }
+  $("txt").removeAttribute("aria-invalid");
+  S.text = $("txt").value; update();
+};
 
 $("photo").onchange = e => {
   const f = e.target.files[0]; if(!f) return;

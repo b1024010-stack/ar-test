@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title data-i18n-title="my.title">じぶんの電車 | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
+<script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <!-- ホーム画面に追加したとき、アプリのように開くための設定 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0b0b0c">
@@ -33,6 +34,8 @@
   .meter{position:absolute;right:10px;top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d2e3;background:rgba(0,0,0,.35);padding:4px 8px;border-radius:12px;pointer-events:none}
   .meter i{display:block;width:70px;height:6px;border-radius:3px;background:#2b3550;overflow:hidden}
   .meter b{display:block;height:100%;width:20%;background:linear-gradient(90deg,#4fd8ff,#ffb020,#ff5a7a)}
+  .wm{position:absolute;left:8px;bottom:6px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:bold;opacity:.75;pointer-events:none;text-shadow:0 1px 2px #000}
+  .wm img{width:16px;height:16px;border-radius:4px}
   .toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:#ff5a7a;color:#fff;
          font-size:13px;font-weight:900;pointer-events:none;white-space:nowrap}
 
@@ -91,6 +94,7 @@
     <canvas id="cv"></canvas>
     <div class="hint" id="hint" data-i18n="gl.hint">👆 スワイプ！</div>
     <div class="meter"><span data-i18n="gl.speed">はやさ</span><i><b id="mtr"></b></i></div>
+    <div class="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
   </div>
 
   <div class="pad">
