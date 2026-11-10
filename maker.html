@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>じぶんの電車をつくる | ジャッチュ</title>
+  <title>電車を作る | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <script src="icons.js"></script>  <!-- 絵文字をジャッチュのアイコンにおきかえる -->
@@ -69,7 +69,7 @@
     .resetrow { text-align:right; margin:-6px 0 8px; }
     .resetrow button { min-height:34px; padding:0 12px; border:1px solid var(--line); border-radius:17px; background:#fff; color:#667; font-size:12px; cursor:pointer; }
     .startbar button { flex:none; min-height:40px; padding:0 12px; border:1px solid #f0c060; border-radius:20px; background:#fff; color:#6b4a00; font-size:13px; font-weight:700; cursor:pointer; }
-    /* ⑤ おえかき・ステッカー */
+    /* ⑤ 絵・ステッカー */
     .tools { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     .tool { min-height:46px; border:1px solid var(--line); border-radius:10px; background:#fff; font-size:15px; font-weight:700; color:var(--ink); cursor:pointer; }
     .tool.on { background:var(--ink); border-color:var(--ink); color:#fff; }
@@ -129,13 +129,13 @@
 <div class="viewer">
   <model-viewer id="mv" loading="eager"
     src="mini-hanamomen.glb?v=6"
-    alt="じぶんでデザインした電車がミニチュアの線路を走るモデル"
+    alt="自分でデザインした電車がミニチュアの線路を走るモデル"
     ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor" ar-scale="auto"
     camera-controls touch-action="pan-y" camera-orbit="20deg 62deg auto"
     autoplay animation-name="Loop" shadow-intensity="1">
     <div class="top">
-      <span class="ttl" style="background:#0b0b0c;color:#ffb020">🎨 じぶんの電車をつくる</span>
-      <span class="ttl" id="ttl">じぶんの電車</span>
+      <span class="ttl" style="background:#0b0b0c;color:#ffb020">🎨 電車を作る</span>
+      <span class="ttl" id="ttl">自分の電車</span>
     </div>
     <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
     <button class="ar-btn" id="iosAr" hidden>📷 ARで走らせる</button>
@@ -146,10 +146,10 @@
 
   <div class="sec">
     <div class="startbar">
-      <span><b id="saveState">まっさらな白い電車から、自由にデザインしよう</b><br><small>作った電車は、このスマホに自動で保存されます</small></span>
-      <a class="newbtn" href="maker.html?new=1">＋ 新しくつくる</a>
+      <span><b id="saveState">白い電車から、自由にデザインしよう</b><br><small>自動で保存されます</small></span>
+      <a class="newbtn" href="maker.html?new=1">＋ 新しく作る</a>
     </div>
-    <div class="resetrow"><button id="resetDesign">🔄 色・模様・文字を白い電車にもどす</button></div>
+    <div class="resetrow"><button id="resetDesign">🔄 白い電車にもどす</button></div>
     <h2>① 色<small>車体の色と、模様・帯の色</small></h2>
     <div class="row" style="margin-bottom:10px">
       <label class="small">車体</label>
@@ -185,11 +185,11 @@
       <label class="file">📷 写真をえらぶ<input type="file" id="photo" accept="image/*"></label>
       <button class="linkbtn" id="rmPhoto" hidden>写真を外す</button>
     </div>
-    <p class="hint">写真はこのスマホ・パソコンの中だけで使われ、どこにも送られません。</p>
+    <p class="hint">写真は端末の中だけで使い、送信しません。</p>
   </div>
 
   <div class="sec" style="border-bottom:none">
-    <h2>⑤ おえかき・ステッカー<small>車体の横に、指でかいたり貼ったり</small></h2>
+    <h2>⑤ 絵・ステッカー<small>指で絵をかいたり、ステッカーを貼ったりしよう</small></h2>
     <div class="tools" id="tools">
       <button class="tool on" data-m="pen">✏️ ペン</button>
       <button class="tool" data-m="eraser">🧽 消しゴム</button>
@@ -198,7 +198,7 @@
     <div class="views" id="views">
       <button data-v="0" class="on">◀ 左半分</button><button data-v="1">右半分 ▶</button><button data-v="2">全体</button>
     </div>
-    <div class="edwrap"><canvas id="ed" width="1000" height="422"></canvas><span class="tag" id="edTag">車体の横（両側に同じ絵が入ります）</span></div>
+    <div class="edwrap"><canvas id="ed" width="1000" height="422"></canvas><span class="tag" id="edTag">車体の横（両側に同じ絵が入るよ）</span></div>
 
     <div id="penBox">
       <div class="pcols" id="pcols"></div>
@@ -206,7 +206,7 @@
     </div>
 
     <div id="stkBox" hidden>
-      <p class="hint" style="margin-top:8px">下のステッカーを押すと、車体に貼られます。指で動かせます（2本指で大きさ・向き）。</p>
+      <p class="hint" style="margin-top:8px">押して貼って、2本指で大きさと向きを変えられるよ。</p>
       <div class="stk" id="stk"></div>
       <div class="selbox" id="selBox" hidden>
         <div class="slider">大きさ<input type="range" id="sSize" min="40" max="380"></div>
@@ -219,16 +219,16 @@
 
     <div class="edbtns">
       <button id="undo" disabled>↩ ひとつもどす</button>
-      <button class="warn" id="clearArt">🗑 おえかきとステッカーを全部消す</button>
+      <button class="warn" id="clearArt">🗑 絵とステッカーを全部消す</button>
     </div>
     <p class="hint">
-      できたら上の「📷 ARで走らせる」を押すと、机や床の上をじぶんの電車が走ります。
+      完成したら「📷 ARで走らせる」で、机の上を走らせてみよう！
     </p>
   </div>
 </div>
 
 <div class="dock">
-  <div class="go"><button id="goMine">🚃 じぶんの電車</button><button id="goRail" class="post">🛤 線路で走らせる</button></div>
+  <div class="go"><button id="goMine">🚃 自分の電車</button><button id="goRail" class="post">🛤 線路で走らせる</button></div>
 <nav class="jt-tabs"></nav>
 </div>
 
@@ -367,7 +367,7 @@ function paint(){
   for (const [x0,y0] of SIDES) tg.drawImage(side, x0, y0);
   for (const [x0,y0,x1,y1] of ENDS){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawEnd(tg,x1-x0,y1-y0); tg.restore(); }
   drawEditor();
-  $("ttl").textContent = (S.text || "じぶんの電車");
+  $("ttl").textContent = (S.text || "自分の電車");
 }
 
 /* ---------- 3D の電車に貼る ---------- */
@@ -458,7 +458,7 @@ const _update = update;
 update = function(){ _update(); if (isIOS){ clearTimeout(iosTimer); iosTimer = setTimeout(buildIOS, 1200); } };
 
 /* =========================================================
-   ⑤ おえかき・ステッカー
+   ⑤ 絵・ステッカー
    車体の横（1885×398）と同じ大きさの絵を重ねて、両側の車体に貼る
    ========================================================= */
 const SW = SIDES[0][2] - SIDES[0][0], SH = SIDES[0][3] - SIDES[0][1];
@@ -727,7 +727,7 @@ async function save(force){
     const texture = await new Promise(r => tex.toBlob(r, "image/jpeg", 0.85));
     const c = mk(640, Math.round(640 * SH / SW)); c.getContext("2d").drawImage(side, 0, 0, c.width, c.height);
     const { photo, photoBlob, ...st } = S;
-    await JatchuDB.put({ id: DID, name: S.text || "じぶんの電車", created: created || (created = Date.now()), updated: Date.now(),
+    await JatchuDB.put({ id: DID, name: S.text || "自分の電車", created: created || (created = Date.now()), updated: Date.now(),
       state: { S: st, strokes: ART.strokes, stickers: ART.stickers }, photo: S.photoBlob || null, texture, thumb: c.toDataURL("image/jpeg", 0.8) });
     JatchuDB.current = DID; savedOnce = true; lastSig = sig();
     $("saveState").textContent = "✓ 保存しました（" + new Date().toLocaleTimeString().slice(0, -3) + "）";
@@ -745,7 +745,7 @@ async function loadDesign(){
       try { await img.decode(); S.photo = img; S.photoBlob = rec.photo; } catch (e) {}
     }
     syncUI();
-    $("saveState").textContent = "「" + rec.name + "」の続きから";
+    $("saveState").textContent = "「" + rec.name + "」の続きから作ろう";
     lastSig = sig();
     JatchuDB.current = DID;
   } else {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title data-i18n-title="my.title">じぶんの電車 | ジャッチュ</title>
+<title data-i18n-title="my.title">自分の電車 | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <script src="icons.js"></script>  <!-- 絵文字をジャッチュのアイコンにおきかえる -->
@@ -90,23 +90,23 @@
 <body>
 <div class="wrap">
   <div class="pad">
-    <div class="top"><h1 data-i18n="my.title">🚃 じぶんの電車</h1><div id="langSw"></div></div>
-    <p class="sub" data-i18n="my.sub">作った電車が流れてきます。スワイプで速さを変えられます。電車をタップすると、なおしたり線路で走らせたりできます。</p>
+    <div class="top"><h1 data-i18n="my.title">🚃 自分の電車</h1><div id="langSw"></div></div>
+    <p class="sub" data-i18n="my.sub">スワイプで速さを変えて、タップで編集できるよ。</p>
   </div>
 
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
-    <div class="hint" id="hint" data-i18n="gl.hint">👆 スワイプ！</div>
+    <div class="hint" id="hint" data-i18n="gl.hint">👆 スワイプ</div>
     <div class="meter"><span data-i18n="gl.speed">はやさ</span><i><b id="mtr"></b></i></div>
     <div class="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
   </div>
 
   <div class="pad">
-    <div class="empty" id="empty" hidden data-i18n="my.empty">まだ電車がありません。今はお手本の電車が走っています。「つくる」で、じぶんの電車をつくってみよう！</div>
-    <a class="make" href="maker.html?new=1" data-i18n="my.make">＋ 新しい電車をつくる</a>
+    <div class="empty" id="empty" hidden data-i18n="my.empty">まだ電車がないよ。「作る」から作ってみよう！</div>
+    <a class="make" href="maker.html?new=1" data-i18n="my.make">＋ 新しく作る</a>
     <h2 id="listTitle"></h2>
     <div class="rank" id="rank"></div>
-    <p class="note" data-i18n="my.note">※ 作った電車は、このスマホの中だけに保存されます（ほかの人には見えません）。ブラウザの履歴やWebサイトのデータを消すと、いっしょに消えます。</p>
+    <p class="note" data-i18n="my.note">※ 作った電車は、このスマホの中だけに保存されます。</p>
     <p class="note"><a href="privacy.html" style="color:#9fd3ff" data-i18n="pv.link">安全とプライバシー</a></p>
   </div>
 </div>
@@ -117,9 +117,9 @@
     <canvas id="big" width="900" height="300"></canvas>
     <div class="ph"><b id="dName"></b><small id="dWhen"></small></div>
     <div class="acts" id="acts">
-      <a class="run" id="aRun" data-i18n="my.run">🛤 本物の線路で走らせる</a>
-      <a class="edit" id="aEdit" data-i18n="my.edit">✏️ なおす・3DとARで見る</a>
-      <button class="del" id="aDel" data-i18n="my.del">🗑 この電車をけす</button>
+      <a class="run" id="aRun" data-i18n="my.run">🛤 線路で走らせる</a>
+      <a class="edit" id="aEdit" data-i18n="my.edit">✏️ 編集・3Dで見る</a>
+      <button class="del" id="aDel" data-i18n="my.del">🗑 消す</button>
     </div>
     <button class="close" id="closeBtn" data-i18n="gl.close">閉じる</button>
   </div>

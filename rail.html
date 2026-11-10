@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <title>本物の線路で走らせる（試作） | ジャッチュ</title>
+  <title>線路で走らせる | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <script src="icons.js"></script>  <!-- 絵文字をジャッチュのアイコンにおきかえる -->
@@ -137,30 +137,30 @@
   </div>
   <div id="status" hidden></div>
   <div id="flash"></div>
-  <div id="walkWarn" hidden role="alert"><div class="ic">🚶‍♀️✋</div><b>歩きながらは使えません</b><div>立ち止まると、また電車が出てきます。<br>まわりをよく見てね。</div></div>
+  <div id="walkWarn" hidden role="alert"><div class="ic">🚶‍♀️✋</div><b>歩きながらは使えません</b><div>立ち止まると、電車がもどります。<br>まわりに気をつけてください。</div></div>
   <div id="pledge" class="pledge" hidden role="dialog" aria-modal="true" aria-labelledby="plT">
     <div class="pl">
-      <h2 id="plT">🤝 安全のやくそく</h2>
-      <p>カメラを使う前に、3つ約束してね（ぜんぶ✓すると始められます）</p>
+      <h2 id="plT">🤝 安全の約束</h2>
+      <p>3つすべてに✓を付けると、始められます。</p>
       <label><input type="checkbox" class="plc"> 線路や車道には、ぜったいに入りません</label>
       <label><input type="checkbox" class="plc"> 立ち止まって、歩道や電停の安全な所から使います</label>
       <label><input type="checkbox" class="plc"> 電車や車が来たら、すぐに画面から目をはなします</label>
-      <button class="btn" id="plOk" disabled>やくそくして始める</button>
+      <button class="btn" id="plOk" disabled>約束して始める</button>
       <button class="btn sec" id="plNo">やめる</button>
     </div>
   </div>
   <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
-  <div id="dragHint" hidden>👆 画面をなぞると、電車を自分で動かせます</div>
+  <div id="dragHint" hidden>👆 なぞると電車を動かせるよ</div>
   <button id="autoBtn" hidden>▶ 自動で走らせる</button>
   <div id="place"></div>
   <div id="realWarn" hidden>🚋 本物の電車がまもなく来ます。<br>線路や車道から離れて、電車に注意してください</div>
   <div id="osm">地図データ © OpenStreetMap contributors</div>
 
   <div id="start">
-    <h1>本物の線路で走らせる</h1>
-    <p class="sub">函館市電の線路をカメラに写すと、じぶんで作った電車が走ってきます</p>
+    <h1>線路で走らせる</h1>
+    <p class="sub">線路にカメラを向けると、自分の電車が走ってくるよ</p>
     <div class="runsel" id="runSel">
-      <button data-run="tram" class="on">🚋 じぶんの電車</button>
+      <button data-run="tram" class="on">🚋 自分の電車</button>
       <button data-run="robot">🤖 変形ロボ</button>
       <button data-run="gogo">💥 GOGO!</button>
     </div>
@@ -168,9 +168,9 @@
     <div class="picks" id="picks" hidden></div>
     <div class="gogoSet" id="gogoSet" hidden>
       <canvas id="shapePv" aria-label="ランプが写真に変わったときの見え方"></canvas>
-      <small>真っ暗なランプが線路を流れてきて、まん中で止まると<br>ピカッと光って、すぐにランプがこの写真に変わります</small>
+      <small>暗いランプが流れてきて止まると、<br>光ってこの写真に変わるよ</small>
       <label class="btn sec">📷 写真をえらぶ<input type="file" id="gogoIn" accept="image/*"></label>
-      <small>写真はこのスマホの中だけで使います（送信しません）</small>
+      <small>写真は端末の中だけで使い、送信しません</small>
     </div>
     <div class="warn">
       <b>⚠ 安全のために</b><br>
@@ -178,7 +178,7 @@
       ・本物の電車や車が近づいたら、すぐに画面から目を離してください<br>
       ・歩きながら使わないでください
     </div>
-    <p class="sub" style="font-size:12px;max-width:420px">位置情報と方位は、どの線路の近くにいるかを調べるためだけに、この端末の中で使います。送信や保存はしません。<a href="privacy.html" style="color:#9fd3ff">くわしく</a></p>
+    <p class="sub" style="font-size:12px;max-width:420px">位置情報と方位は、近くの線路を調べるためだけに使い、送信・保存しません。<a href="privacy.html" style="color:#9fd3ff">くわしく</a></p>
     <button class="btn" id="camBtn" disabled>読み込み中…</button>
     <label class="btn sec">🎞 撮った動画で試す<input type="file" id="fileIn" accept="video/*,image/*"></label>
     <div id="msg"></div>
@@ -217,7 +217,7 @@ const escH = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 if (design) {
   $('trainName').innerHTML = `<img src="${design.thumb}" alt=""><span>🚋 ${escH(design.name)}</span>`;
 } else {
-  $('trainName').innerHTML = '<span>まだ電車をつくっていません（お手本の電車が走ります）</span><a href="maker.html?new=1">🎨 じぶんの電車をつくる →</a>';
+  $('trainName').innerHTML = '<span>まだ電車がないよ（お手本が走るよ）</span><a href="maker.html?new=1">🎨 電車を作る →</a>';
 }
 if (designList.length > 1) {                       // ほかの電車にかえる
   $('picks').hidden = false;
@@ -996,12 +996,12 @@ function loop(now) {
 
   const st = $('status');
   st.hidden = false;
-  st.textContent = walking ? '🚶 立ち止まってね' : realSoon ? '本物の電車が通過するまでお待ちください'
-    : taps.length === 1 ? 'もう1本のレールをタップしてください'
+  st.textContent = walking ? '🚶 立ち止まってください' : realSoon ? '本物の電車が通過するまでお待ちください'
+    : taps.length === 1 ? 'もう1本のレールをタップしてね'
     : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + ' 走行中（レールを探しています）'
       : manual != null ? `${ICON[runMode]} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
-      : `${ICON[runMode]} 走行中（${W.side ? '横から' : '正面から'}）・ちがう線路ならレールを2本タップ`)
-    : '線路を写してください（正面からでも横からでもOK）';
+      : `${ICON[runMode]} 走行中（${W.side ? '横から' : '正面から'}）`)
+    : '線路を写してね（正面からでも横からでもOK）';
   $('place').textContent = placeText(realMin);
 
   if (++fc >= 15) { fps = fc * 1000 / (now - ft); fc = 0; ft = now; }
@@ -1011,7 +1011,7 @@ function loop(now) {
 function placeText(realMin) {
   if (!geo) return '📍 位置情報なし';
   if (!near) return '📍 地図の範囲外';
-  if (near.far) return `📍 線路から約${Math.round(near.dist)}m（地図の線路から離れています）`;
+  if (near.far) return `📍 線路から約${Math.round(near.dist)}m離れています`;
   let t = `📍 ${near.stop}の近く ・ 線路まで約${Math.round(near.dist)}m（${near.count >= 2 ? '複線' : '単線'}）`;
   if (isFinite(realMin)) t += ` ・ 本物の電車 あと${Math.max(0, Math.floor(realMin))}分（仮）`;
   return t;
