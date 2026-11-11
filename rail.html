@@ -104,7 +104,12 @@
       padding: 4px; border-radius: 999px; background: rgba(0,0,0,.6); }
     #flatBar button { min-width: 64px; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 15px; font-weight: bold; }
     #flatBar button.on { background: #e8c15a; color: #1b2a4a; }
-    #msg2 { position: fixed; top: calc(56px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; font-size: 13px; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+    /* 電車が来るまでのカウントダウン */
+    #eta { position: fixed; top: calc(56px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 11; padding: 8px 18px; border-radius: 999px;
+      background: rgba(0,0,0,.65); font-size: 16px; font-weight: bold; white-space: nowrap; }
+    #eta b { font-size: 26px; color: #ffd23c; margin: 0 4px; font-variant-numeric: tabular-nums; }
+    #eta.here { background: rgba(232,193,90,.95); color: #1b2a4a; }
+    #msg2 { position: fixed; top: calc(108px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; font-size: 13px; text-shadow: 0 1px 2px #000; white-space: nowrap; }
     #msg2:empty { display: none; }
     #wm { position: fixed; left: calc(8px + env(safe-area-inset-left)); bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 5; display: flex; align-items: center; gap: 4px;
       font-size: 11px; font-weight: bold; opacity: .75; pointer-events: none; text-shadow: 0 1px 2px #000; }
@@ -159,6 +164,7 @@
   <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
   <div id="flatBar" hidden><button data-f="floor" class="on">床</button><button data-f="desk">机</button></div>
   <div id="msg2" aria-live="polite"></div>
+  <div id="eta" hidden></div>
   <div id="dragHint" hidden>👆 なぞると電車を動かせるよ</div>
   <button id="autoBtn" hidden>▶ 自動で走らせる</button>
   <div id="place"></div>
@@ -1016,6 +1022,22 @@ function trainPos(now) {
   return STOP_AT + (APPROACH_FROM - STOP_AT) * ease((t - 16) / 10);
 }
 
+/* ---------- 電車が来るまで あと何秒か（自動で走っているときだけ） ---------- */
+function showEta(now, hide) {
+  const el = $('eta');
+  if (hide || manual != null || !anchor.visible) { el.hidden = true; return; }
+  // [着く時刻, 去りはじめる時刻, 1周の長さ]（秒）
+  const T = runMode === 'gogo' ? [G.in, G_GO, G_ALL] : runMode === 'robot' ? [R.in, R_GO, R_ALL] : [10, 16, 26];
+  const name = { tram: '電車', robot: 'ロボ電車', gogo: 'ランプ' }[runMode], ic = ICON[runMode];
+  const t = ((now - t0) / 1000) % T[2];
+  let html, here = false;
+  if (t < T[0]) html = `${ic} ${name}が来るまで あと<b>${Math.ceil(T[0] - t)}</b>秒`;
+  else if (t < T[1]) { html = `${ic} ${name}が来たよ！`; here = true; }
+  else html = `${ic} 次の${name}まで あと<b>${Math.ceil(T[2] - t + T[0])}</b>秒`;
+  if (showEta.last !== html) { el.innerHTML = html; showEta.last = html; }   // 変わったときだけ書きかえる
+  el.classList.toggle('here', here); el.hidden = false;
+}
+
 /* =========================================================
    ループ
    ========================================================= */
@@ -1073,6 +1095,7 @@ function loop(now) {
       : `${ICON[runMode]} 走行中（${W.side ? '横から' : '正面から'}）`)
     : '線路を写してね（正面からでも横からでもOK）';
   $('place').textContent = placeText(realMin);
+  showEta(now, walking || realSoon);
 
   if (++fc >= 15) { fps = fc * 1000 / (now - ft); fc = 0; ft = now; }
   if (debug) drawDebug(lines, b, edges);
