@@ -180,10 +180,10 @@
   </div>
 
   <div class="sec">
-    <h2>④ 写真<small>車体の横に貼られます</small></h2>
+    <h2>④ 写真<small>ステッカーみたいに、好きな所に貼れるよ</small></h2>
     <div class="row">
       <label class="file">📷 写真をえらぶ<input type="file" id="photo" accept="image/*"></label>
-      <button class="linkbtn" id="rmPhoto" hidden>写真を外す</button>
+      <button class="linkbtn" id="rmPhoto" hidden>前の写真を外す</button>
     </div>
     <p class="hint">写真は端末の中だけで使い、送信しません。</p>
   </div>
@@ -281,12 +281,44 @@ $("txt").oninput = () => {
   S.text = $("txt").value; update();
 };
 
-$("photo").onchange = e => {
+// 写真をえらぶと、写真のステッカーになる（指で動かす・2本指で大きさと向きを変えられる）
+$("photo").onchange = async e => {
   const f = e.target.files[0]; if(!f) return;
-  const img = new Image();
-  img.onload = () => { S.photo = img; S.photoBlob = f; $("rmPhoto").hidden = false; update(); };
-  img.src = URL.createObjectURL(f);
+  const url = URL.createObjectURL(f);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const M = 640, k = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight));   // 小さくして保存（このスマホの中だけ）
+    const c = mk(Math.round(img.naturalWidth * k), Math.round(img.naturalHeight * k));
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const id = "photo_" + Date.now().toString(36);
+    ART.photos[id] = c.toDataURL("image/jpeg", 0.85);
+    await makePhotoSticker(id, ART.photos[id]);
+    const v = viewRect();
+    pushHistory();
+    const st = { kind: id, x: v.x + v.w * 0.5, y: SH * 0.5, s: 160, r: 0 };
+    ART.stickers.push(st); ART.sel = st;
+    document.querySelector('#tools [data-m="sticker"]').click();   // ステッカーの道具にして、すぐ動かせるように
+    ART.sel = st; selUI(); commit(); showEditor();
+  } catch (err) { alert("写真を読み込めませんでした"); }
+  URL.revokeObjectURL(url); e.target.value = "";
 };
+// 写真ステッカーの絵：白いふちどり＋かげ（ふつうのステッカーと同じ大きさのわりあい）
+function makePhotoSticker(id, src){
+  return new Promise(ok => {
+    const im = new Image();
+    im.onload = () => {
+      const N = 568, unit = 512, b = 18, m = N - 2 * b - 20;
+      const c = mk(N, N), g = c.getContext("2d");
+      const k = Math.min(m / im.width, m / im.height), w = im.width * k, h = im.height * k, x = (N - w) / 2, y = (N - h) / 2;
+      g.save(); g.shadowColor = "rgba(0,0,0,.3)"; g.shadowBlur = 12; g.shadowOffsetY = 4; g.fillStyle = "#fff";
+      g.beginPath(); g.roundRect(x - b, y - b, w + 2 * b, h + 2 * b, 22); g.fill(); g.restore();
+      g.save(); g.beginPath(); g.roundRect(x, y, w, h, 8); g.clip(); g.drawImage(im, x, y, w, h); g.restore();
+      c.unit = unit; stkImg[id] = c; ok();
+    };
+    im.onerror = () => ok();
+    im.src = src;
+  });
+}
 // 「白い電車にもどす」：色・模様・文字・写真を最初にもどす（おえかき・ステッカーはそのまま）
 $("resetDesign").onclick = () => {
   if (!confirm("色・模様・文字・写真を、白い電車にもどしますか？（おえかきとステッカーは残ります）")) return;
@@ -530,7 +562,7 @@ function loadSticker([id, , svg]){
 }
 
 // ---- 状態 ----
-const ART = { mode: "pen", view: 0, color: "#111111", width: 16, strokes: [], stickers: [], sel: null, history: [] };
+const ART = { mode: "pen", view: 0, color: "#111111", width: 16, strokes: [], stickers: [], sel: null, history: [], photos: {} };   // photos：写真ステッカーの絵（id → data URL）
 const PEN_COLORS = ["#ffffff", "#111111", "#ff3b30", "#ffb020", "#ffe14d", "#3dbb4f", "#4fd8ff", "#1d4e89", "#a259ff", "#ff7aa2"];
 const VIEWS = [[0, 0.5], [0.5, 1], [0, 1]];
 
@@ -542,7 +574,7 @@ function paintSide(){
   for (const k of ART.stickers){
     const im = stkImg[k.kind]; if (!im) continue;
     sdg.save(); sdg.translate(k.x, k.y); sdg.rotate(k.r * Math.PI / 180);
-    const s = k.s * (im.width / 256); sdg.drawImage(im, -s / 2, -s / 2, s, s); sdg.restore();
+    const s = k.s * (im.width / (im.unit || 256)); sdg.drawImage(im, -s / 2, -s / 2, s, s); sdg.restore();
   }
 }
 function drawStroke(g, st){
@@ -728,11 +760,13 @@ async function save(force){
     const c = mk(640, Math.round(640 * SH / SW)); c.getContext("2d").drawImage(side, 0, 0, c.width, c.height);
     const { photo, photoBlob, ...st } = S;
     await JatchuDB.put({ id: DID, name: S.text || "自分の電車", created: created || (created = Date.now()), updated: Date.now(),
-      state: { S: st, strokes: ART.strokes, stickers: ART.stickers }, photo: S.photoBlob || null, texture, thumb: c.toDataURL("image/jpeg", 0.8) });
+      state: { S: st, strokes: ART.strokes, stickers: ART.stickers, photos: usedPhotos() }, photo: S.photoBlob || null, texture, thumb: c.toDataURL("image/jpeg", 0.8) });
     JatchuDB.current = DID; savedOnce = true; lastSig = sig();
     $("saveState").textContent = "✓ 保存しました（" + new Date().toLocaleTimeString().slice(0, -3) + "）";
   } catch (e) { console.error(e); $("saveState").textContent = "⚠ 保存できませんでした（プライベートブラウズでは保存できません）"; }
 }
+// 貼ってある写真ステッカーの絵だけを保存する
+function usedPhotos(){ const o = {}; for (const k of ART.stickers) if (ART.photos[k.kind]) o[k.kind] = ART.photos[k.kind]; return o; }
 async function loadDesign(){
   let rec = null;
   if (!params.has("new")) { try { rec = await JatchuDB.pick(params.get("id")); } catch (e) {} }
@@ -740,6 +774,8 @@ async function loadDesign(){
     DID = rec.id; created = rec.created; savedOnce = true;
     Object.assign(S, DEFAULT, rec.state.S || {}, { photo: null, photoBlob: null });
     ART.strokes = rec.state.strokes || []; ART.stickers = rec.state.stickers || []; redrawArt();
+    ART.photos = rec.state.photos || {};
+    await Promise.all(Object.entries(ART.photos).map(([id, src]) => makePhotoSticker(id, src)));
     if (rec.photo){
       const img = new Image(); img.src = URL.createObjectURL(rec.photo);
       try { await img.decode(); S.photo = img; S.photoBlob = rec.photo; } catch (e) {}
