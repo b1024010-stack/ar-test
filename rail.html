@@ -459,6 +459,28 @@ function updateRobot(now, dt) {
   robotCam.copy(camera.position); train.worldToLocal(robotCam);
   const face = Math.atan2(robotCam.z, -robotCam.x), e = k * k * (3 - 2 * k);
   robot.group.rotation.y = face * e;
+  // ロボットになるほど小さくして、スマホの画面に収める
+  robotS += (robotFit() - robotS) * Math.min(1, dt * 4);
+  robot.group.scale.setScalar(1 + (robotS - 1) * e);
+}
+// ロボット全体が画面に入る大きさ（1＝実物大）。高さは画面の上から少しあける・横はばは画面の85%まで
+const ROBOT_H = 7.1, ROBOT_HALF_W = 2.5, FIT_MIN = 0.12;
+let robotS = 1;
+const _fv = new THREE.Vector3(), _fb = new THREE.Vector3();
+function robotFit() {
+  const rc = glCanvas.getBoundingClientRect();
+  if (!rc.width || !rc.height) return 1;
+  const fx = Math.min(1, innerWidth / rc.width), fy = Math.min(1, innerHeight / rc.height);   // 画面に見えている割合
+  _fb.set(0, 0, 0); train.localToWorld(_fb);
+  const d = Math.max(0.5, _fb.distanceTo(camera.position));
+  const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const sW = 0.85 * d * tanV * camera.aspect * fx / ROBOT_HALF_W;
+  // 頭のてっぺんが、画面の上の端より少し下に来る大きさを探す
+  const topOK = (sc) => { _fv.set(0, ROBOT_H * sc, 0); train.localToWorld(_fv); _fv.project(camera); return _fv.z < 1 && _fv.y <= 0.78 * fy; };
+  let lo = FIT_MIN, hi = 1;
+  if (topOK(1)) lo = 1;
+  else for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (topOK(m)) lo = m; else hi = m; }
+  return Math.max(FIT_MIN, Math.min(1, lo, sW));
 }
 
 let tramModel = null;
