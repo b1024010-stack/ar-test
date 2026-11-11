@@ -99,6 +99,13 @@
       background: rgba(10,14,26,.88); text-align: center; font-size: 15px; line-height: 1.7; }
     #walkWarn b { font-size: 22px; }
     #walkWarn .ic { font-size: 56px; }
+    /* 平らな所モード：床・机の切りかえ */
+    #flatBar { position: fixed; top: calc(8px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; display: flex; gap: 4px;
+      padding: 4px; border-radius: 999px; background: rgba(0,0,0,.6); }
+    #flatBar button { min-width: 64px; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 15px; font-weight: bold; }
+    #flatBar button.on { background: #e8c15a; color: #1b2a4a; }
+    #msg2 { position: fixed; top: calc(56px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; font-size: 13px; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+    #msg2:empty { display: none; }
     #wm { position: fixed; left: calc(8px + env(safe-area-inset-left)); bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 5; display: flex; align-items: center; gap: 4px;
       font-size: 11px; font-weight: bold; opacity: .75; pointer-events: none; text-shadow: 0 1px 2px #000; }
     #wm img { width: 16px; height: 16px; border-radius: 4px; }
@@ -150,6 +157,8 @@
     </div>
   </div>
   <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
+  <div id="flatBar" hidden><button data-f="floor" class="on">床</button><button data-f="desk">机</button></div>
+  <div id="msg2" aria-live="polite"></div>
   <div id="dragHint" hidden>👆 なぞると電車を動かせるよ</div>
   <button id="autoBtn" hidden>▶ 自動で走らせる</button>
   <div id="place"></div>
@@ -180,6 +189,7 @@
     </div>
     <p class="sub" style="font-size:12px;max-width:420px">位置情報と方位は、近くの線路を調べるためだけに使い、送信・保存しません。<a href="privacy.html" style="color:#9fd3ff">くわしく</a></p>
     <button class="btn" id="camBtn" disabled>読み込み中…</button>
+    <button class="btn sec" id="flatBtn" disabled>🪑 線路がない所（床・机）で走らせる</button>
     <label class="btn sec">🎞 撮った動画で試す<input type="file" id="fileIn" accept="video/*,image/*"></label>
     <div id="msg"></div>
     <nav class="jt-tabs"></nav>
@@ -474,7 +484,7 @@ function robotFit() {
   _fb.set(0, 0, 0); train.localToWorld(_fb);
   const d = Math.max(0.5, _fb.distanceTo(camera.position));
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const sW = 0.85 * d * tanV * camera.aspect * fx / ROBOT_HALF_W;
+  const sW = 0.85 * d * tanV * camera.aspect * fx / (ROBOT_HALF_W * (flat ? flat.s : 1));
   // 頭のてっぺんが、画面の上の端より少し下に来る大きさを探す
   const topOK = (sc) => { _fv.set(0, ROBOT_H * sc, 0); train.localToWorld(_fv); _fv.project(camera); return _fv.z < 1 && _fv.y <= 0.78 * fy; };
   let lo = FIT_MIN, hi = 1;
@@ -948,7 +958,41 @@ const ONE = new THREE.Vector3(1, 1, 1);
 function updateView() {
   camera.quaternion.copy(camQuat());
   camera.updateMatrixWorld(true);
-  if (W.pos) { anchor.matrix.compose(W.pos, W.quat, ONE); anchor.matrixWorldNeedsUpdate = true; }
+  if (W.pos) { anchor.matrix.compose(W.pos, W.quat, flat ? _flatScale.setScalar(flat.s) : ONE); anchor.matrixWorldNeedsUpdate = true; }
+}
+/* ---------- 平らな所（床・机）で走らせる ----------
+   線路がなくても、床や机をタップした所に、小さな電車を置いて走らせる。
+   スマホの傾き（ジャイロ）で、置いた場所が動かないようにする。
+   h：カメラから床・机までの高さ [m]、s：電車の大きさ（実物の何分の1か） */
+const FLAT = { floor: { h: 1.3, s: 1 / 15, name: '床' }, desk: { h: 0.45, s: 1 / 40, name: '机' } };
+let flat = null;
+const _flatScale = new THREE.Vector3();
+function setFlat(kind) {
+  flat = { kind, ...FLAT[kind] };
+  document.querySelectorAll('#flatBar button').forEach((x) => x.classList.toggle('on', x.dataset.f === kind));
+  resetPose();                                     // 高さが変わるので、置きなおす
+}
+$('flatBar').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFlat(b.dataset.f); });
+function placeFlat(e) {
+  const rc = glCanvas.getBoundingClientRect();
+  const nx = (e.clientX - rc.left) / rc.width * 2 - 1, ny = -((e.clientY - rc.top) / rc.height * 2 - 1);
+  camera.updateMatrixWorld(true);
+  const o = camera.position.clone(), dir = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(o).normalize();
+  if (dir.y > -0.08) { $('msg2').textContent = '床や机の、もう少し下の方をタップしてね'; return; }
+  const t = Math.min(flat.h / -dir.y, 8);
+  const p = o.addScaledVector(dir, t); p.y = camera.position.y - flat.h;
+  // 電車は、画面の左から右へ走る向き
+  const X = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); X.y = 0;
+  if (X.lengthSq() < 1e-4) X.set(1, 0, 0);
+  X.normalize();
+  const Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3().crossVectors(X, Y);
+  W.pos = p; W.quat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+  W.dir = X.clone(); W.side = true; anchor.visible = true;
+  // 小さくしたので、影の範囲も小さくする
+  Object.assign(sun.shadow.camera, { left: -12 * flat.s, right: 12 * flat.s, top: 12 * flat.s, bottom: -12 * flat.s, near: 0.01, far: 120 * flat.s });
+  sun.shadow.camera.updateProjectionMatrix();
+  t0 = performance.now(); manual = null; vel = 0; $('msg2').textContent = '';
+  if (window.jatchuCount) jatchuCount('平らな所 → 置いた ' + flat.kind);
 }
 function resetPose() { anchor.visible = false; W.pos = W.quat = W.dir = null; W.side = null; }
 
@@ -979,19 +1023,22 @@ let fps = 0, fc = 0, ft = performance.now(), procMs = 0;
 function loop(now) {
   requestAnimationFrame(loop);
   if (!srcW) return;
-  const a = performance.now();
-  pctx.drawImage(source, 0, 0, pw, ph);
-  const img = pctx.getImageData(0, 0, pw, ph);
-  const { lines, edges } = detectLines(img);
-  const b = solve(lines);
-  procMs = procMs * 0.9 + (performance.now() - a) * 0.1;
-  lastLines = lines;
-  if (b) {
-    prev = b; lastFound = now; applyPose(b);
-    if (pick) { pick.lo += (b.lo - pick.lo) * 0.5; pick.hi += (b.hi - pick.hi) * 0.5; }   // 選んだレールを追いかける
-  }
-  else if (now - lastFound > (gyroOK() ? HOLD_MS_GYRO : HOLD_MS_NOGYRO)) { resetPose(); prev = null; if (now - lastFound > HOLD_MS_GYRO + 2000) pick = null; }
-  else if (gyroOK()) prev = null;            // 見失っている間はジャイロで保つ（前回の候補に引っぱられないように）
+  let lines = [], edges = 0, b = null;
+  if (!flat) {                               // 平らな所モードのときは、レールを探さない
+    const a = performance.now();
+    pctx.drawImage(source, 0, 0, pw, ph);
+    const img = pctx.getImageData(0, 0, pw, ph);
+    ({ lines, edges } = detectLines(img));
+    b = solve(lines);
+    procMs = procMs * 0.9 + (performance.now() - a) * 0.1;
+    lastLines = lines;
+    if (b) {
+      prev = b; lastFound = now; applyPose(b);
+      if (pick) { pick.lo += (b.lo - pick.lo) * 0.5; pick.hi += (b.hi - pick.hi) * 0.5; }   // 選んだレールを追いかける
+    }
+    else if (now - lastFound > (gyroOK() ? HOLD_MS_GYRO : HOLD_MS_NOGYRO)) { resetPose(); prev = null; if (now - lastFound > HOLD_MS_GYRO + 2000) pick = null; }
+    else if (gyroOK()) prev = null;            // 見失っている間はジャイロで保つ（前回の候補に引っぱられないように）
+  } else anchor.visible = !!W.pos;
   // テスト用： ?fakepose=1（正面）/ ?fakepose=side（横）で、線路があることにして表示を確かめる
   if (params.has('fakepose')) {
     const side = params.get('fakepose') === 'side';
@@ -1018,7 +1065,8 @@ function loop(now) {
 
   const st = $('status');
   st.hidden = false;
-  st.textContent = walking ? '🚶 立ち止まってください' : realSoon ? '本物の電車が通過するまでお待ちください'
+  st.textContent = flat && !walking ? (W.pos ? `${ICON[runMode]} 走行中｜別の所をタップすると置きなおせるよ` : `${flat.name}をタップして、電車を置いてね`)
+    : walking ? '🚶 立ち止まってください' : realSoon ? '本物の電車が通過するまでお待ちください'
     : taps.length === 1 ? 'もう1本のレールをタップしてね'
     : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + ' 走行中（レールを探しています）'
       : manual != null ? `${ICON[runMode]} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
@@ -1109,6 +1157,7 @@ stage.addEventListener('pointercancel', endDrag, true);
 $('autoBtn').addEventListener('click', () => { manual = null; vel = 0; t0 = performance.now(); });
 
 stage.addEventListener('pointerup', (e) => {
+  if (flat) { if (srcW) placeFlat(e); return; }   // 平らな所モード：タップした所に置く
   if (!srcW || !lastLines.length) return;
   const rc = ov.getBoundingClientRect();
   const x = (e.clientX - rc.left) / rc.width * pw - pw / 2, y = (e.clientY - rc.top) / rc.height * ph - ph / 2;
@@ -1132,8 +1181,9 @@ function setSource(el, w, h) {
   layout(); $('start').hidden = true; $('dbgBtn').hidden = false; $('dbg').hidden = !debug;
   t0 = performance.now(); requestAnimationFrame(loop);
 }
-async function startCamera() {
-  enableSensors(); useSensor = true; startGeo();
+async function startCamera(mode) {
+  enableSensors(); useSensor = true;
+  if (mode === 'flat') { setFlat('floor'); $('flatBar').hidden = false; $('osm').hidden = true; } else startGeo();
   $('camBtn').disabled = true; $('camBtn').textContent = '起動中…';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false,
@@ -1156,23 +1206,27 @@ function startFile(file) {
   video.onloadedmetadata = async () => { await video.play().catch(() => {}); setSource(video, video.videoWidth, video.videoHeight); };
 }
 // 安全のやくそく：ぜんぶ✓したら始められる（カメラで始めるたびに出す）
-function openPledge() {
+let pledgeMode = 'rail';
+function openPledge(mode) {
+  pledgeMode = mode === 'flat' ? 'flat' : 'rail';
   document.querySelectorAll('.plc').forEach((c) => (c.checked = false));
   $('plOk').disabled = true; $('pledge').hidden = false;
 }
 $('pledge').addEventListener('change', () => { $('plOk').disabled = ![...document.querySelectorAll('.plc')].every((c) => c.checked); });
 $('plNo').onclick = () => { $('pledge').hidden = true; };
-$('plOk').onclick = () => { $('pledge').hidden = true; if (window.jatchuCount) jatchuCount('安全 → やくそくした'); startCamera(); };
+$('plOk').onclick = () => { $('pledge').hidden = true; if (window.jatchuCount) jatchuCount('安全 → やくそくした'); startCamera(pledgeMode); };
 $('fileIn').onchange = (e) => { const f = e.target.files[0]; if (f) startFile(f); };
 
 function enableStart() {
   $('camBtn').disabled = false; $('camBtn').textContent = '📷 カメラで始める';
-  $('camBtn').onclick = openPledge;
+  $('camBtn').onclick = () => openPledge('rail');
+  $('flatBtn').disabled = false; $('flatBtn').onclick = () => openPledge('flat');
 }
 // テスト用： ?img=画像のURL でその画像を使う
 if (params.get('img')) {
   const im = new Image(); im.crossOrigin = 'anonymous';
-  im.onload = () => { stage.appendChild(im); video.hidden = true; useSensor = false; debug = true; setSource(im, im.naturalWidth, im.naturalHeight); };
+  im.onload = () => { stage.appendChild(im); video.hidden = true; useSensor = false; debug = !params.has('flat'); setSource(im, im.naturalWidth, im.naturalHeight);
+    if (params.has('flat')) { setFlat(params.get('flat') === 'desk' ? 'desk' : 'floor'); $('flatBar').hidden = false; } };   // ?flat=1 で平らな所モードを試す
   im.src = params.get('img');
 }
 </script>

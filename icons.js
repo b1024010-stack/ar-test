@@ -41,6 +41,7 @@
     printer:'<path d="M7 9V3.5h10V9"/><path d="M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7z"/>',
     globe:  '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
     star:   '<path d="m12 3.2 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/>',
+    table:  '<path d="M3 9.5h18M5 9.5v10M19 9.5v10M3 9.5 5 6h14l2 3.5M5 14h14"/>',
     heart:  '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
   };
   // 絵文字 → アイコン
@@ -49,7 +50,7 @@
     "🗑": "trash", "✏": "pencil", "🧽": "eraser", "🔄": "reload", "↩": "undo", "⚠": "warn", "🛡": "shield",
     "📜": "doc", "🤝": "pledge", "📱": "phone", "📲": "addhome", "⚙": "gear", "📊": "chart", "📍": "pin",
     "👆": "swipe", "🤖": "robot", "💥": "burst", "🚶‍♀": "walk", "🚶": "walk", "✋": "stop", "👀": "eye",
-    "🧪": "flask", "🎉": "sparkle", "🖨": "printer", "🌐": "globe", "⭐": "star", "♥": "heart",
+    "🧪": "flask", "🎉": "sparkle", "🖨": "printer", "🌐": "globe", "⭐": "star", "♥": "heart", "🪑": "table",
   };
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const RE = new RegExp("(" + Object.keys(MAP).sort((a, b) => b.length - a.length).map(esc).join("|") + ")\\uFE0F?", "gu");
