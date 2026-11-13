@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <title>線路で走らせる | ジャッチュ</title>
+  <title data-i18n-title="rl.title">線路で走らせる | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <script src="icons.js"></script>  <!-- 絵文字をジャッチュのアイコンにおきかえる -->
@@ -104,8 +104,13 @@
       padding: 4px; border-radius: 999px; background: rgba(0,0,0,.6); }
     #flatBar button { min-width: 64px; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 15px; font-weight: bold; }
     #flatBar button.on { background: #e8c15a; color: #1b2a4a; }
+    #flatBar { flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 120px); border-radius: 20px; }
+    #flatBar .hadj { display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 12px; color: #fff; }
+    #flatBar .hadj input { width: 110px; accent-color: #e8c15a; }
+    #flatBar:not([hidden]) ~ #eta { top: calc(104px + env(safe-area-inset-top)); }
+    #flatBar:not([hidden]) ~ #msg2 { top: calc(156px + env(safe-area-inset-top)); }
     /* 電車が来るまでのカウントダウン */
-    #eta { position: fixed; top: calc(56px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 11; padding: 8px 18px; border-radius: 999px;
+    #eta { position: fixed; top: calc(92px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 11; padding: 8px 18px; border-radius: 999px;
       background: rgba(0,0,0,.65); font-size: 16px; font-weight: bold; white-space: nowrap; }
     #eta b { font-size: 26px; color: #ffd23c; margin: 0 4px; font-variant-numeric: tabular-nums; }
     #eta.here { background: rgba(232,193,90,.95); color: #1b2a4a; }
@@ -139,7 +144,7 @@
     <canvas id="ov"></canvas>
   </div>
 
-  <a class="tb" id="back" href="index.html">← ホーム</a>
+  <a class="tb" id="back" href="index.html" data-i18n="rl.home">← ホーム</a>
   <button class="tb" id="dbgBtn" hidden>DEBUG</button>
   <div id="dbg" hidden>
     <label>焦点 <input id="focal" type="range" min="50" max="130" value="80"><span id="focalV">0.80</span></label>
@@ -149,54 +154,54 @@
   </div>
   <div id="status" hidden></div>
   <div id="flash"></div>
-  <div id="walkWarn" hidden role="alert"><div class="ic">🚶‍♀️✋</div><b>歩きながらは使えません</b><div>立ち止まると、電車がもどります。<br>まわりに気をつけてください。</div></div>
+  <div id="walkWarn" hidden role="alert"><div class="ic">🚶‍♀️✋</div><b data-i18n="rl.walk1">歩きながらは使えません</b><div data-i18n-html="rl.walk2">立ち止まると、電車がもどります。<br>まわりに気をつけてください。</div></div>
   <div id="pledge" class="pledge" hidden role="dialog" aria-modal="true" aria-labelledby="plT">
     <div class="pl">
-      <h2 id="plT">🤝 安全の約束</h2>
-      <p>3つすべてに✓を付けると、始められます。</p>
-      <label><input type="checkbox" class="plc"> 線路や車道には、ぜったいに入りません</label>
-      <label><input type="checkbox" class="plc"> 立ち止まって、歩道や電停の安全な所から使います</label>
-      <label><input type="checkbox" class="plc"> 電車や車が来たら、すぐに画面から目をはなします</label>
-      <button class="btn" id="plOk" disabled>約束して始める</button>
-      <button class="btn sec" id="plNo">やめる</button>
+      <h2 id="plT" data-i18n="rl.pl.t">🤝 安全の約束</h2>
+      <p data-i18n="rl.pl.s">3つすべてに✓を付けると、始められます。</p>
+      <label><input type="checkbox" class="plc"> <span data-i18n="rl.pl.1">線路や車道には、ぜったいに入りません</span></label>
+      <label><input type="checkbox" class="plc"> <span data-i18n="rl.pl.2">立ち止まって、歩道や電停の安全な所から使います</span></label>
+      <label><input type="checkbox" class="plc"> <span data-i18n="rl.pl.3">電車や車が来たら、すぐに画面から目をはなします</span></label>
+      <button class="btn" id="plOk" disabled data-i18n="rl.pl.ok">約束して始める</button>
+      <button class="btn sec" id="plNo" data-i18n="rl.pl.no">やめる</button>
     </div>
   </div>
   <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
-  <div id="flatBar" hidden><button data-f="floor" class="on">床</button><button data-f="desk">机</button></div>
+  <div id="flatBar" hidden><button data-f="floor" class="on" data-i18n="rl.floor">床</button><button data-f="desk" data-i18n="rl.desk">机</button><label class="hadj"><span data-i18n="rl.hadj">高さあわせ</span><input type="range" id="flatH" min="0" max="100" value="50"></label></div>
   <div id="msg2" aria-live="polite"></div>
   <div id="eta" hidden></div>
-  <div id="dragHint" hidden>👆 なぞると電車を動かせるよ</div>
-  <button id="autoBtn" hidden>▶ 自動で走らせる</button>
+  <div id="dragHint" hidden data-i18n="rl.drag">👆 なぞると電車を動かせるよ</div>
+  <button id="autoBtn" hidden data-i18n="rl.auto">▶ 自動で走らせる</button>
   <div id="place"></div>
-  <div id="realWarn" hidden>🚋 本物の電車がまもなく来ます。<br>線路や車道から離れて、電車に注意してください</div>
-  <div id="osm">地図データ © OpenStreetMap contributors</div>
+  <div id="realWarn" hidden data-i18n-html="rl.real">🚋 本物の電車がまもなく来ます。<br>線路や車道から離れて、電車に注意してください</div>
+  <div id="osm" data-i18n="rl.osm">地図データ © OpenStreetMap contributors</div>
 
   <div id="start">
-    <h1>線路で走らせる</h1>
-    <p class="sub">線路にカメラを向けると、自分の電車が走ってくるよ</p>
+    <h1 data-i18n="rl.h1">線路で走らせる</h1>
+    <p class="sub" data-i18n="rl.sub">線路にカメラを向けると、自分の電車が走ってくるよ</p>
     <div class="runsel" id="runSel">
-      <button data-run="tram" class="on">🚋 自分の電車</button>
-      <button data-run="robot">🤖 変形ロボ</button>
+      <button data-run="tram" class="on" data-i18n="rl.mode.tram">🚋 自分の電車</button>
+      <button data-run="robot" data-i18n="rl.mode.robot">🤖 変形ロボ</button>
       <button data-run="gogo">💥 GOGO!</button>
     </div>
-    <div class="train" id="trainName">🚋 読み込み中…</div>
+    <div class="train" id="trainName">🚋 …</div>
     <div class="picks" id="picks" hidden></div>
     <div class="gogoSet" id="gogoSet" hidden>
       <canvas id="shapePv" aria-label="ランプが写真に変わったときの見え方"></canvas>
-      <small>暗いランプが流れてきて止まると、<br>光ってこの写真に変わるよ</small>
-      <label class="btn sec">📷 写真をえらぶ<input type="file" id="gogoIn" accept="image/*"></label>
-      <small>写真は端末の中だけで使い、送信しません</small>
+      <small data-i18n-html="rl.gogo1">暗いランプが流れてきて止まると、<br>光ってこの写真に変わるよ</small>
+      <label class="btn sec"><span data-i18n="mk.photo">📷 写真をえらぶ</span><input type="file" id="gogoIn" accept="image/*"></label>
+      <small data-i18n="rl.photonote">写真は端末の中だけで使い、送信しません</small>
     </div>
-    <div class="warn">
+    <div class="warn" data-i18n-html="rl.warn">
       <b>⚠ 安全のために</b><br>
       ・<b>線路や車道には絶対に立ち入らず</b>、歩道や安全地帯から使ってください<br>
       ・本物の電車や車が近づいたら、すぐに画面から目を離してください<br>
       ・歩きながら使わないでください
     </div>
-    <p class="sub" style="font-size:12px;max-width:420px">位置情報と方位は、近くの線路を調べるためだけに使い、送信・保存しません。<a href="privacy.html" style="color:#9fd3ff">くわしく</a></p>
-    <button class="btn" id="camBtn" disabled>読み込み中…</button>
-    <button class="btn sec" id="flatBtn" disabled>🪑 線路がない所（床・机）で走らせる</button>
-    <label class="btn sec">🎞 撮った動画で試す<input type="file" id="fileIn" accept="video/*,image/*"></label>
+    <p class="sub" style="font-size:12px;max-width:420px"><span data-i18n="rl.geo">位置情報と方位は、近くの線路を調べるためだけに使い、送信・保存しません。</span><a href="privacy.html" style="color:#9fd3ff" data-i18n="rl.more">くわしく</a></p>
+    <button class="btn" id="camBtn" disabled data-i18n="rl.loading">読み込み中…</button>
+    <button class="btn sec" id="flatBtn" disabled data-i18n="rl.flat">🪑 線路がない所（床・机）で走らせる</button>
+    <label class="btn sec"><span data-i18n="rl.file">🎞 撮った動画で試す</span><input type="file" id="fileIn" accept="video/*,image/*"></label>
     <div id="msg"></div>
     <nav class="jt-tabs"></nav>
   </div>
@@ -221,6 +226,8 @@ const H_MIN_LIVE = 1.0, H_MAX_LIVE = 1.9;  // カメラで使うとき（手で�
 const REAL_DATA = false;             // 本物の運行情報につないだら true（今は仮の時刻表なので、接近の警告は出さない）
 const SIDE_RANGE = 60;               // 横から見たとき、電車が現れる・去っていく距離 [m]
 
+// ことばの切りかえ（lang.js）：日本語の文をそのまま鍵にして、訳があれば訳を使う
+const T = (s, v) => (window.JL ? JL.t(s, v) : s);
 const params = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);
 let debug = params.has('debug');
@@ -233,7 +240,7 @@ const escH = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 if (design) {
   $('trainName').innerHTML = `<img src="${design.thumb}" alt=""><span>🚋 ${escH(design.name)}</span>`;
 } else {
-  $('trainName').innerHTML = '<span>まだ電車がないよ（お手本が走るよ）</span><a href="maker.html?new=1">🎨 電車を作る →</a>';
+  $('trainName').innerHTML = `<span>${T('まだ電車がないよ（お手本が走るよ）')}</span><a href="maker.html?new=1">${T('🎨 電車を作る →')}</a>`;
 }
 if (designList.length > 1) {                       // ほかの電車にかえる
   $('picks').hidden = false;
@@ -285,7 +292,7 @@ $('gogoIn').onchange = async (e) => {
     gogoPhoto = c.toDataURL('image/jpeg', 0.85);
     store.set('jatchu_gogo_photo', gogoPhoto);
     await loadPhoto(gogoPhoto); showShapeUI(); buildShape();
-  } catch (err) { $('msg').textContent = '写真を読み込めませんでした'; }
+  } catch (err) { $('msg').textContent = T('写真を読み込めませんでした'); }
   URL.revokeObjectURL(url); e.target.value = '';
 };
 
@@ -571,7 +578,7 @@ function onCompass(e) {
 /* ---------- 歩いているかどうか（歩きスマホを止める） ----------
    スマホのゆれ（加速度の大きさのばらつき）が大きい状態が続いたら「歩いている」とみなす。
    位置情報の速さ（秒速1.2m以上）でも判断する */
-const WALK_ON = 1.4, WALK_OFF = 0.7;   // ゆれの大きさ [m/s²]：これより大きいと歩いている／小さいと止まっている
+const WALK_ON = 0.9, WALK_OFF = 0.45;   // ゆれの大きさ [m/s²]：これより大きいと歩いている／小さいと止まっている
 const walk = { buf: [], on: false, hi: null, lo: null, speed: 0, counted: false };
 function onMotion(e) {
   const a = e.accelerationIncludingGravity; if (!a || a.x == null) return;
@@ -582,10 +589,11 @@ function onMotion(e) {
 function updateWalk(now) {
   if (!useSensor) return false;
   let sd = 0;
-  if (walk.buf.length > 15) {
+  if (walk.buf.length > 10) {
     const m = walk.buf.reduce((s, v) => s + v[1], 0) / walk.buf.length;
     sd = Math.sqrt(walk.buf.reduce((s, v) => s + (v[1] - m) ** 2, 0) / walk.buf.length);
   }
+  walk.sd = sd;
   const moving = sd > WALK_ON || walk.speed > 1.2, still = sd < WALK_OFF && walk.speed < 0.6;
   if (moving) { walk.lo = null; if (walk.hi == null) walk.hi = now; } else walk.hi = null;
   if (still) { if (walk.lo == null) walk.lo = now; } else walk.lo = null;
@@ -949,7 +957,7 @@ function applyPose(b) {
   mw.decompose(p, q, sc);
   if (!W.pos || newView) {
     W.pos = p; W.quat = q;
-    if (newView) { t0 = performance.now(); manual = null; }     // 見方が変わったら最初から（自動にもどす）
+    if (newView) manual = null;     // 見方が変わったら自動にもどす（カウントダウンは続ける）
   } else {
     // ジャイロがあるときは、検出のゆれを強めにならす（スマホの動きはジャイロが受け持つ）
     const k = gyroOK() ? 0.12 : 0.25;
@@ -970,23 +978,41 @@ function updateView() {
    線路がなくても、床や机をタップした所に、小さな電車を置いて走らせる。
    スマホの傾き（ジャイロ）で、置いた場所が動かないようにする。
    h：カメラから床・机までの高さ [m]、s：電車の大きさ（実物の何分の1か） */
-const FLAT = { floor: { h: 1.3, s: 1 / 15, name: '床' }, desk: { h: 0.45, s: 1 / 40, name: '机' } };
+const FLAT = { floor: { h: 1.3, s: 1 / 15, lo: 0.7, hi: 1.9 }, desk: { h: 0.45, s: 1 / 40, lo: 0.15, hi: 0.85 } };   // lo〜hi：高さあわせで動かせる範囲 [m]
+let flatRay = null;                                 // 置いたときにタップした向き（高さを変えたら、同じ向きの上で置きなおす）
 let flat = null;
 const _flatScale = new THREE.Vector3();
 function setFlat(kind) {
   flat = { kind, ...FLAT[kind] };
+  const saved = +store.get('jatchu_flat_h_' + kind);                       // 前に合わせた高さを使う
+  if (saved >= flat.lo && saved <= flat.hi) flat.h = saved;
+  $('flatH').value = Math.round((flat.h - flat.lo) / (flat.hi - flat.lo) * 100);
+  flatRay = null;
   document.querySelectorAll('#flatBar button').forEach((x) => x.classList.toggle('on', x.dataset.f === kind));
   resetPose();                                     // 高さが変わるので、置きなおす
 }
 $('flatBar').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setFlat(b.dataset.f); });
+// タップした向きの上で、床・机の高さ（カメラから何m下か）の所に置く
+function flatPoint() {
+  const { o, dir } = flatRay, t = Math.min(flat.h / -dir.y, 8);
+  const p = o.clone().addScaledVector(dir, t); p.y = o.y - flat.h;
+  return p;
+}
+// 高さあわせ：電車が浮いたり沈んだりして見えるときに、本当の床・机の高さに合わせる
+$('flatH').addEventListener('input', () => {
+  if (!flat) return;
+  flat.h = flat.lo + ($('flatH').value / 100) * (flat.hi - flat.lo);
+  store.set('jatchu_flat_h_' + flat.kind, flat.h.toFixed(2));
+  if (flatRay && W.pos) W.pos.copy(flatPoint());
+});
 function placeFlat(e) {
   const rc = glCanvas.getBoundingClientRect();
   const nx = (e.clientX - rc.left) / rc.width * 2 - 1, ny = -((e.clientY - rc.top) / rc.height * 2 - 1);
   camera.updateMatrixWorld(true);
   const o = camera.position.clone(), dir = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(o).normalize();
-  if (dir.y > -0.08) { $('msg2').textContent = '床や机の、もう少し下の方をタップしてね'; return; }
-  const t = Math.min(flat.h / -dir.y, 8);
-  const p = o.addScaledVector(dir, t); p.y = camera.position.y - flat.h;
+  if (dir.y > -0.08) { $('msg2').textContent = T('床や机の、もう少し下の方をタップしてね'); return; }
+  flatRay = { o: o.clone(), dir: dir.clone() };
+  const p = flatPoint();
   // 電車は、画面の左から右へ走る向き
   const X = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); X.y = 0;
   if (X.lengthSq() < 1e-4) X.set(1, 0, 0);
@@ -1027,13 +1053,13 @@ function showEta(now, hide) {
   const el = $('eta');
   if (hide || manual != null || !anchor.visible) { el.hidden = true; return; }
   // [着く時刻, 去りはじめる時刻, 1周の長さ]（秒）
-  const T = runMode === 'gogo' ? [G.in, G_GO, G_ALL] : runMode === 'robot' ? [R.in, R_GO, R_ALL] : [10, 16, 26];
-  const name = { tram: '電車', robot: 'ロボ電車', gogo: 'ランプ' }[runMode], ic = ICON[runMode];
-  const t = ((now - t0) / 1000) % T[2];
+  const TT = runMode === 'gogo' ? [G.in, G_GO, G_ALL] : runMode === 'robot' ? [R.in, R_GO, R_ALL] : [10, 16, 26];
+  const name = T({ tram: '電車', robot: 'ロボ電車', gogo: 'ランプ' }[runMode]), ic = ICON[runMode];
+  const t = ((now - t0) / 1000) % TT[2];
   let html, here = false;
-  if (t < T[0]) html = `${ic} ${name}が来るまで あと<b>${Math.ceil(T[0] - t)}</b>秒`;
-  else if (t < T[1]) { html = `${ic} ${name}が来たよ！`; here = true; }
-  else html = `${ic} 次の${name}まで あと<b>${Math.ceil(T[2] - t + T[0])}</b>秒`;
+  if (t < TT[0]) html = `${ic} ${T('{name}が来るまで あと<b>{n}</b>秒', { name, n: Math.ceil(TT[0] - t) })}`;
+  else if (t < TT[1]) { html = `${ic} ${T('{name}が来たよ！', { name })}`; here = true; }
+  else html = `${ic} ${T('次の{name}まで あと<b>{n}</b>秒', { name, n: Math.ceil(TT[2] - t + TT[0]) })}`;
   if (showEta.last !== html) { el.innerHTML = html; showEta.last = html; }   // 変わったときだけ書きかえる
   el.classList.toggle('here', here); el.hidden = false;
 }
@@ -1087,14 +1113,15 @@ function loop(now) {
 
   const st = $('status');
   st.hidden = false;
-  st.textContent = flat && !walking ? (W.pos ? `${ICON[runMode]} 走行中｜別の所をタップすると置きなおせるよ` : `${flat.name}をタップして、電車を置いてね`)
-    : walking ? '🚶 立ち止まってください' : realSoon ? '本物の電車が通過するまでお待ちください'
-    : taps.length === 1 ? 'もう1本のレールをタップしてね'
-    : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + ' 走行中（レールを探しています）'
-      : manual != null ? `${ICON[runMode]} 手動で運転中（${W.side ? '横にスライド' : '上下にスライド'}）`
-      : `${ICON[runMode]} 走行中（${W.side ? '横から' : '正面から'}）`)
-    : '線路を写してね（正面からでも横からでもOK）';
-  $('place').textContent = placeText(realMin);
+  st.textContent = flat && !walking ? (W.pos ? `${ICON[runMode]} ${T('走行中｜別の所をタップすると置きなおせるよ')}` : T('{p}をタップして、電車を置いてね', { p: T(flat.kind === 'desk' ? 'rl.desk' : 'rl.floor') }))
+    : walking ? T('🚶 立ち止まってください') : realSoon ? T('本物の電車が通過するまでお待ちください')
+    : taps.length === 1 ? T('もう1本のレールをタップしてね')
+    : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + T(' 走行中（レールを探しています）')
+      : manual != null ? `${ICON[runMode]} ${T('手動で運転中（{d}）', { d: T(W.side ? '横にスライド' : '上下にスライド') })}`
+      : `${ICON[runMode]} ${T('走行中（{d}）', { d: T(W.side ? '横から' : '正面から') })}`)
+    : T('線路を写してね（正面からでも横からでもOK）');
+  $('place').hidden = !!flat;                     // 床・机モードでは、場所の表示はいらない
+  if (!flat) $('place').textContent = placeText(realMin);
   showEta(now, walking || realSoon);
 
   if (++fc >= 15) { fps = fc * 1000 / (now - ft); fc = 0; ft = now; }
@@ -1102,11 +1129,11 @@ function loop(now) {
   window.__rail = { lines: lines.length, found: !!b, side: b && b.side, hgt: b && b.hgt };
 }
 function placeText(realMin) {
-  if (!geo) return '📍 位置情報なし';
-  if (!near) return '📍 地図の範囲外';
-  if (near.far) return `📍 線路から約${Math.round(near.dist)}m離れています`;
-  let t = `📍 ${near.stop}の近く ・ 線路まで約${Math.round(near.dist)}m（${near.count >= 2 ? '複線' : '単線'}）`;
-  if (isFinite(realMin)) t += ` ・ 本物の電車 あと${Math.max(0, Math.floor(realMin))}分（仮）`;
+  if (!geo) return T('📍 位置情報なし');
+  if (!near) return T('📍 地図の範囲外');
+  if (near.far) return T('📍 線路から約{d}m離れています', { d: Math.round(near.dist) });
+  let t = T('📍 {stop}の近く ・ 線路まで約{d}m（{k}）', { stop: T(near.stop), d: Math.round(near.dist), k: T(near.count >= 2 ? '複線' : '単線') });
+  if (isFinite(realMin)) t += T(' ・ 本物の電車 あと{n}分（仮）', { n: Math.max(0, Math.floor(realMin)) });
   return t;
 }
 function drawDebug(lines, b, edges) {
@@ -1123,7 +1150,8 @@ function drawDebug(lines, b, edges) {
     (b ? `${b.side ? '横から' : '正面から'} ・ カメラの高さ ${b.hgt.toFixed(2)} m<br>` : 'レールの組 なし<br>') +
     `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし（動画）'}<br>` +
     `ジャイロ ${gyroOK() ? '使用中' : 'なし'} ・ 方位 ${camHeading == null ? '—' : Math.round(camHeading) + '°'} ・ GPS ${geo ? '±' + Math.round(geo.acc) + 'm' : '—'}<br>` +
-    `線路の向きの予想 ${mapPrior() == null ? '—' : Math.round(mapPrior()) + '°'}`;
+    `線路の向きの予想 ${mapPrior() == null ? '—' : Math.round(mapPrior()) + '°'}<br>` +
+    `ゆれ ${(walk.sd || 0).toFixed(2)}（${walk.buf.length}件）・ 速さ ${walk.speed.toFixed(1)} m/s ・ 歩き ${walk.on ? 'はい' : 'いいえ'}`;
 }
 
 /* ---------- レールをタップして選ぶ（自動でちがう線を選んだときの手直し） ---------- */
@@ -1201,21 +1229,21 @@ stage.addEventListener('pointerup', (e) => {
 function setSource(el, w, h) {
   source = el; srcW = w; srcH = h;
   pw = PROC_W; ph = Math.round(PROC_W * srcH / srcW); proc.width = pw; proc.height = ph;
-  layout(); $('start').hidden = true; $('dbgBtn').hidden = false; $('dbg').hidden = !debug;
+  layout(); $('start').hidden = true; $('dbgBtn').hidden = !params.has('debug'); $('dbg').hidden = !debug;
   t0 = performance.now(); requestAnimationFrame(loop);
 }
 async function startCamera(mode) {
   enableSensors(); useSensor = true;
   if (mode === 'flat') { setFlat('floor'); $('flatBar').hidden = false; $('osm').hidden = true; } else startGeo();
-  $('camBtn').disabled = true; $('camBtn').textContent = '起動中…';
+  $('camBtn').disabled = true; $('camBtn').textContent = T('起動中…');
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false,
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
     video.srcObject = stream; await video.play();
     setSource(video, video.videoWidth, video.videoHeight);
   } catch (e) {
-    $('msg').textContent = 'カメラを起動できませんでした: ' + e.message;
-    $('camBtn').disabled = false; $('camBtn').textContent = 'もう一度試す';
+    $('msg').textContent = T('カメラを起動できませんでした: ') + e.message;
+    $('camBtn').disabled = false; $('camBtn').textContent = T('もう一度試す');
   }
 }
 function startFile(file) {
@@ -1241,7 +1269,7 @@ $('plOk').onclick = () => { $('pledge').hidden = true; if (window.jatchuCount) j
 $('fileIn').onchange = (e) => { const f = e.target.files[0]; if (f) startFile(f); };
 
 function enableStart() {
-  $('camBtn').disabled = false; $('camBtn').textContent = '📷 カメラで始める';
+  $('camBtn').disabled = false; $('camBtn').textContent = T('📷 カメラで始める');
   $('camBtn').onclick = () => openPledge('rail');
   $('flatBtn').disabled = false; $('flatBtn').onclick = () => openPledge('flat');
 }

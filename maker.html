@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>電車を作る | ジャッチュ</title>
+  <title data-i18n-title="mk.title">電車を作る | ジャッチュ</title>
 <script src="count.js"></script>  <!-- アクセス数（GoatCounter） -->
 <script src="guard.js"></script>  <!-- 公式の場所か・広告の言葉のチェック -->
 <script src="icons.js"></script>  <!-- 絵文字をジャッチュのアイコンにおきかえる -->
@@ -134,11 +134,11 @@
     camera-controls touch-action="pan-y" camera-orbit="20deg 62deg auto"
     autoplay animation-name="Loop" shadow-intensity="1">
     <div class="top">
-      <span class="ttl" style="background:#0b0b0c;color:#ffb020">🎨 電車を作る</span>
+      <span class="ttl" style="background:#0b0b0c;color:#ffb020" data-i18n="mk.badge">🎨 電車を作る</span>
       <span class="ttl" id="ttl">自分の電車</span>
     </div>
-    <button slot="ar-button" class="ar-btn">📷 ARで走らせる</button>
-    <button class="ar-btn" id="iosAr" hidden>📷 ARで走らせる</button>
+    <button slot="ar-button" class="ar-btn" data-i18n="mk.ar">📷 ARで走らせる</button>
+    <button class="ar-btn" id="iosAr" hidden data-i18n="mk.ar">📷 ARで走らせる</button>
   </model-viewer>
 </div>
 
@@ -146,89 +146,87 @@
 
   <div class="sec">
     <div class="startbar">
-      <span><b id="saveState">白い電車から、自由にデザインしよう</b><br><small>自動で保存されます</small></span>
-      <a class="newbtn" href="maker.html?new=1">＋ 新しく作る</a>
+      <span><b id="saveState">白い電車から、自由にデザインしよう</b><br><small data-i18n="mk.auto">自動で保存されます</small></span>
+      <a class="newbtn" href="maker.html?new=1" data-i18n="mk.new">＋ 新しく作る</a>
     </div>
-    <div class="resetrow"><button id="resetDesign">🔄 白い電車にもどす</button></div>
-    <h2>① 色<small>車体の色と、模様・帯の色</small></h2>
+    <div class="resetrow"><button id="resetDesign" data-i18n="mk.reset">🔄 白い電車にもどす</button></div>
+    <h2><span data-i18n="mk.h1">① 色</span><small data-i18n="mk.h1s">車体の色と、模様・帯の色</small></h2>
     <div class="row" style="margin-bottom:10px">
-      <label class="small">車体</label>
+      <label class="small" data-i18n="mk.body">車体</label>
       <div class="swatches" id="sw1"></div>
       <input type="color" id="c1" value="#ffffff">
     </div>
     <div class="row">
-      <label class="small">模様</label>
+      <label class="small" data-i18n="mk.patc">模様</label>
       <div class="swatches" id="sw2"></div>
       <input type="color" id="c2" value="#cfd6de">
     </div>
   </div>
 
   <div class="sec">
-    <h2>② 模様</h2>
+    <h2 data-i18n="mk.h2">② 模様</h2>
     <div class="opts" id="pats"></div>
   </div>
 
   <div class="sec">
-    <h2>③ 文字<small>電車の名前やメッセージ</small></h2>
-    <input type="text" id="txt" maxlength="14" value="" placeholder="例：いちご号（なくてもOK）">
+    <h2><span data-i18n="mk.h3">③ 文字</span><small data-i18n="mk.h3s">電車の名前やメッセージ</small></h2>
+    <input type="text" id="txt" maxlength="14" value="" placeholder="例：いちご号（なくてもOK）" data-i18n-ph="mk.ph">
     <div id="txtNg" class="txtNg" role="alert" hidden></div>
     <div class="row" style="margin-top:10px">
-      <label class="small">文字の色</label>
+      <label class="small" data-i18n="mk.tcol">文字の色</label>
       <input type="color" id="c3" value="#1c2a44">
     </div>
     <div class="opts" id="fonts" style="margin-top:10px"></div>
   </div>
 
   <div class="sec">
-    <h2>④ 写真<small>ステッカーみたいに、好きな所に貼れるよ</small></h2>
+    <h2><span data-i18n="mk.h4">④ 写真</span><small data-i18n="mk.h4s">ステッカーみたいに、好きな所に貼れるよ</small></h2>
     <div class="row">
-      <label class="file">📷 写真をえらぶ<input type="file" id="photo" accept="image/*"></label>
-      <button class="linkbtn" id="rmPhoto" hidden>前の写真を外す</button>
+      <label class="file"><span data-i18n="mk.photo">📷 写真をえらぶ</span><input type="file" id="photo" accept="image/*"></label>
+      <button class="linkbtn" id="rmPhoto" hidden data-i18n="mk.rmphoto">前の写真を外す</button>
     </div>
-    <p class="hint">写真は端末の中だけで使い、送信しません。</p>
+    <p class="hint" data-i18n="mk.photonote">写真は端末の中だけで使い、送信しません。</p>
   </div>
 
   <div class="sec" style="border-bottom:none">
-    <h2>⑤ 絵・ステッカー<small>指で絵をかいたり、ステッカーを貼ったりしよう</small></h2>
+    <h2><span data-i18n="mk.h5">⑤ 絵・ステッカー</span><small data-i18n="mk.h5s">指で絵をかいたり、ステッカーを貼ったりしよう</small></h2>
     <div class="tools" id="tools">
-      <button class="tool on" data-m="pen">✏️ ペン</button>
-      <button class="tool" data-m="eraser">🧽 消しゴム</button>
-      <button class="tool" data-m="sticker">⭐ ステッカー</button>
+      <button class="tool on" data-m="pen" data-i18n="mk.pen">✏️ ペン</button>
+      <button class="tool" data-m="eraser" data-i18n="mk.eraser">🧽 消しゴム</button>
+      <button class="tool" data-m="sticker" data-i18n="mk.sticker">⭐ ステッカー</button>
     </div>
     <div class="views" id="views">
-      <button data-v="0" class="on">◀ 左半分</button><button data-v="1">右半分 ▶</button><button data-v="2">全体</button>
+      <button data-v="0" class="on" data-i18n="mk.left">◀ 左半分</button><button data-v="1" data-i18n="mk.right">右半分 ▶</button><button data-v="2" data-i18n="mk.all">全体</button>
     </div>
-    <div class="edwrap"><canvas id="ed" width="1000" height="422"></canvas><span class="tag" id="edTag">車体の横（両側に同じ絵が入るよ）</span></div>
+    <div class="edwrap"><canvas id="ed" width="1000" height="422"></canvas><span class="tag" id="edTag" data-i18n="mk.side">車体の横（両側に同じ絵が入るよ）</span></div>
 
     <div id="penBox">
       <div class="pcols" id="pcols"></div>
-      <div class="slider"><span id="wLabel">太さ</span><input type="range" id="pw" min="4" max="70" value="16"><span id="pwV">16</span></div>
+      <div class="slider"><span id="wLabel" data-i18n="mk.width">太さ</span><input type="range" id="pw" min="4" max="70" value="16"><span id="pwV">16</span></div>
     </div>
 
     <div id="stkBox" hidden>
-      <p class="hint" style="margin-top:8px">押して貼って、2本指で大きさと向きを変えられるよ。</p>
+      <p class="hint" style="margin-top:8px" data-i18n="mk.stkhint">押して貼って、2本指で大きさと向きを変えられるよ。</p>
       <div class="stk" id="stk"></div>
       <div class="selbox" id="selBox" hidden>
-        <div class="slider">大きさ<input type="range" id="sSize" min="40" max="380"></div>
-        <div class="slider">向き<input type="range" id="sRot" min="-180" max="180"></div>
+        <div class="slider"><span data-i18n="mk.size">大きさ</span><input type="range" id="sSize" min="40" max="380"></div>
+        <div class="slider"><span data-i18n="mk.rot">向き</span><input type="range" id="sRot" min="-180" max="180"></div>
         <div class="edbtns" style="margin-top:6px">
-          <button id="sFront">⬆ 前に出す</button><button id="sCopy">⧉ もう1つ</button><button class="warn" id="sDel">🗑 はがす</button>
+          <button id="sFront" data-i18n="mk.front">⬆ 前に出す</button><button id="sCopy" data-i18n="mk.copy">⧉ もう1つ</button><button class="warn" id="sDel" data-i18n="mk.peel">🗑 はがす</button>
         </div>
       </div>
     </div>
 
     <div class="edbtns">
-      <button id="undo" disabled>↩ ひとつもどす</button>
-      <button class="warn" id="clearArt">🗑 絵とステッカーを全部消す</button>
+      <button id="undo" disabled data-i18n="mk.undo">↩ ひとつもどす</button>
+      <button class="warn" id="clearArt" data-i18n="mk.clear">🗑 絵とステッカーを全部消す</button>
     </div>
-    <p class="hint">
-      完成したら「📷 ARで走らせる」で、机の上を走らせてみよう！
-    </p>
+    <p class="hint" data-i18n="mk.done">完成したら「📷 ARで走らせる」で、机の上を走らせてみよう！</p>
   </div>
 </div>
 
 <div class="dock">
-  <div class="go"><button id="goMine">🚃 自分の電車</button><button id="goRail" class="post">🛤 線路で走らせる</button></div>
+  <div class="go"><button id="goMine" data-i18n="mk.goMine">🚃 自分の電車</button><button id="goRail" class="post" data-i18n="mk.goRail">🛤 線路で走らせる</button></div>
 <nav class="jt-tabs"></nav>
 </div>
 
@@ -238,6 +236,9 @@
 /* ---------- 設定 ---------- */
 const PRESET1 = ["#ffffff","#1d4e89","#b22222","#2e7d32","#222222","#f2c14e"];
 const PRESET2 = ["#cfd6de","#f2c14e","#ff7aa2","#4fd8ff","#e65100","#1d4e89"];
+// ことばの切りかえ（lang.js）：日本語の文をそのまま鍵にして、訳があれば訳を使う
+const T = (s, v) => (window.JL ? JL.t(s, v) : s);
+document.getElementById("saveState").textContent = T("mk.start");
 const PATTERNS = [["none","なし"],["stripe","ストライプ"],["dots","水玉"],["seigaiha","青海波"],["check","チェック"],["wave","波"]];
 const FONTS = [["'Noto Sans JP',sans-serif","ゴシック",900],["'Noto Serif JP',serif","明朝",700],["'Kosugi Maru',sans-serif","まる文字",400]];
 
@@ -259,7 +260,7 @@ function swatches(el, list, key, input){
   mark();
 }
 function options(el, list, key, labelIdx){
-  el.innerHTML = list.map((o,i) => `<button class="opt" data-i="${i}">${o[labelIdx]}</button>`).join("");
+  el.innerHTML = list.map((o,i) => `<button class="opt" data-i="${i}">${T(o[labelIdx])}</button>`).join("");
   const mark = () => el.querySelectorAll(".opt").forEach((b,i) =>
     b.classList.toggle("on", key==="pat" ? list[i][0]===S.pat : i===S.font));
   el.onclick = e => { const b = e.target.closest(".opt"); if(!b) return;
@@ -276,7 +277,7 @@ $("c3").oninput = () => { S.c3 = $("c3").value; update(); };
 $("txt").oninput = () => {
   const why = window.JatchuGuard && JatchuGuard.check($("txt").value);
   $("txtNg").hidden = !why;
-  if (why){ $("txtNg").textContent = "⚠ 広告のような言葉（" + why + "）は使えません"; $("txt").setAttribute("aria-invalid", "true"); return; }
+  if (why){ $("txtNg").textContent = T("⚠ 広告のような言葉（{why}）は使えません", { why: T(why) }); $("txt").setAttribute("aria-invalid", "true"); return; }
   $("txt").removeAttribute("aria-invalid");
   S.text = $("txt").value; update();
 };
@@ -299,7 +300,7 @@ $("photo").onchange = async e => {
     ART.stickers.push(st); ART.sel = st;
     document.querySelector('#tools [data-m="sticker"]').click();   // ステッカーの道具にして、すぐ動かせるように
     ART.sel = st; selUI(); commit(); showEditor();
-  } catch (err) { alert("写真を読み込めませんでした"); }
+  } catch (err) { alert(T("写真を読み込めませんでした")); }
   URL.revokeObjectURL(url); e.target.value = "";
 };
 // 写真ステッカーの絵：白いふちどり＋かげ（ふつうのステッカーと同じ大きさのわりあい）
@@ -321,7 +322,7 @@ function makePhotoSticker(id, src){
 }
 // 「白い電車にもどす」：色・模様・文字・写真を最初にもどす（おえかき・ステッカーはそのまま）
 $("resetDesign").onclick = () => {
-  if (!confirm("色・模様・文字・写真を、白い電車にもどしますか？（おえかきとステッカーは残ります）")) return;
+  if (!confirm(T("色・模様・文字・写真を、白い電車にもどしますか？（おえかきとステッカーは残ります）"))) return;
   Object.assign(S, DEFAULT, { photoBlob: null });
   syncUI(); update();
 };
@@ -399,7 +400,7 @@ function paint(){
   for (const [x0,y0] of SIDES) tg.drawImage(side, x0, y0);
   for (const [x0,y0,x1,y1] of ENDS){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawEnd(tg,x1-x0,y1-y0); tg.restore(); }
   drawEditor();
-  $("ttl").textContent = (S.text || "自分の電車");
+  $("ttl").textContent = (S.text || T("自分の電車"));
 }
 
 /* ---------- 3D の電車に貼る ---------- */
@@ -481,7 +482,7 @@ if (isIOS){
       a.rel = "ar"; a.download = "jatchu-train.usdz"; a.href = url;
       a.appendChild(document.createElement("img"));
       a.click();
-    } catch(e){ console.error(e); alert("ARの準備に失敗しました"); }
+    } catch(e){ console.error(e); alert(T("ARの準備に失敗しました")); }
     btn.textContent = "📷 ARで走らせる";
   };
   setTimeout(loadTemplate, 4000);   // ページが表示されてから、ARの準備を始める
@@ -622,17 +623,17 @@ $("undo").onclick = () => {
 };
 $("clearArt").onclick = () => {
   if (!ART.strokes.length && !ART.stickers.length) return;
-  if (!confirm("おえかきとステッカーを全部消しますか？")) return;
+  if (!confirm(T("おえかきとステッカーを全部消しますか？"))) return;
   pushHistory(); ART.strokes = []; ART.stickers = []; ART.sel = null; redrawArt(); selUI(); commit();
 };
 
 // ---- 道具の切り替え ----
 $("tools").onclick = e => { const b = e.target.closest(".tool"); if (!b) return; setMode(b.dataset.m); };
-function setMode(m){
-  ART.mode = m; showEditor();
+function setMode(m, noScroll){
+  ART.mode = m; if (!noScroll) showEditor();
   document.querySelectorAll(".tool").forEach(b => b.classList.toggle("on", b.dataset.m === m));
   $("penBox").hidden = m === "sticker"; $("stkBox").hidden = m !== "sticker";
-  $("wLabel").textContent = m === "eraser" ? "消す太さ" : "太さ";
+  $("wLabel").textContent = T(m === "eraser" ? "mk.ewidth" : "mk.width");
   $("pcols").style.display = m === "eraser" ? "none" : "";
   if (m !== "sticker") ART.sel = null;
   selUI(); drawEditor();
@@ -690,6 +691,8 @@ const ptrs = new Map(); let cur = null, gesture = null;
 ed.addEventListener("pointerdown", e => {
   ed.setPointerCapture(e.pointerId);
   const p = toSide(e); ptrs.set(e.pointerId, p);
+  // ペンや消しゴムのときでも、貼ってあるステッカー・写真にさわったら、そのまま動かせるようにする
+  if (ART.mode !== "sticker" && ptrs.size === 1 && hit(...p)) setMode("sticker", true);
   if (ART.mode === "sticker"){
     if (ptrs.size === 1){
       const k = hit(...p);
@@ -762,8 +765,8 @@ async function save(force){
     await JatchuDB.put({ id: DID, name: S.text || "自分の電車", created: created || (created = Date.now()), updated: Date.now(),
       state: { S: st, strokes: ART.strokes, stickers: ART.stickers, photos: usedPhotos() }, photo: S.photoBlob || null, texture, thumb: c.toDataURL("image/jpeg", 0.8) });
     JatchuDB.current = DID; savedOnce = true; lastSig = sig();
-    $("saveState").textContent = "✓ 保存しました（" + new Date().toLocaleTimeString().slice(0, -3) + "）";
-  } catch (e) { console.error(e); $("saveState").textContent = "⚠ 保存できませんでした（プライベートブラウズでは保存できません）"; }
+    $("saveState").textContent = T("✓ 保存しました（{t}）", { t: new Date().toLocaleTimeString().slice(0, -3) });
+  } catch (e) { console.error(e); $("saveState").textContent = T("⚠ 保存できませんでした（プライベートブラウズでは保存できません）"); }
 }
 // 貼ってある写真ステッカーの絵だけを保存する
 function usedPhotos(){ const o = {}; for (const k of ART.stickers) if (ART.photos[k.kind]) o[k.kind] = ART.photos[k.kind]; return o; }
@@ -781,7 +784,7 @@ async function loadDesign(){
       try { await img.decode(); S.photo = img; S.photoBlob = rec.photo; } catch (e) {}
     }
     syncUI();
-    $("saveState").textContent = "「" + rec.name + "」の続きから作ろう";
+    $("saveState").textContent = T("「{name}」の続きから作ろう", { name: rec.name });
     lastSig = sig();
     JatchuDB.current = DID;
   } else {
