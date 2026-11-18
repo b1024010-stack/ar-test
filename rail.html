@@ -94,6 +94,13 @@
     .pl label:has(input:checked) { background: rgba(123,224,160,.18); }
     .pl input { flex: none; width: 24px; height: 24px; accent-color: #7be0a0; }
     .pl .btn:disabled { opacity: .4; }
+    /* 許可しなかったときの案内 */
+    #phSteps { margin: 0 0 12px; padding-left: 1.4em; font-size: 14px; line-height: 1.6; text-align: left; }
+    #phSteps li { margin: 6px 0; }
+    #permNote { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 12; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    #permNote button { border: 0; border-radius: 999px; padding: 8px 14px; background: rgba(120,40,30,.9); color: #fff; font: inherit; font-size: 13px; font-weight: bold; white-space: nowrap; }
+    #startNote { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255,176,32,.15); border: 1px solid #e8c15a; font-size: 13px; line-height: 1.6; max-width: 420px; text-align: left; }
+    #startNote button { margin-top: 6px; border: 0; background: none; color: #e8c15a; font: inherit; font-weight: bold; text-decoration: underline; padding: 0; }
     /* 歩いているときの注意 */
     #walkWarn { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px;
       background: rgba(10,14,26,.88); text-align: center; font-size: 15px; line-height: 1.7; }
@@ -166,6 +173,16 @@
       <button class="btn sec" id="plNo" data-i18n="rl.pl.no">やめる</button>
     </div>
   </div>
+  <div id="permHelp" class="pledge" hidden role="dialog" aria-modal="true" aria-labelledby="phT">
+    <div class="pl">
+      <h2 id="phT"></h2>
+      <p id="phMsg" style="text-align:left"></p>
+      <ol id="phSteps"></ol>
+      <button class="btn" id="phRetry" data-i18n="ph.retry">もう一度試す</button>
+      <button class="btn sec" id="phClose" data-i18n="ph.close">閉じる</button>
+    </div>
+  </div>
+  <div id="permNote" hidden></div>
   <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
   <div id="flatBar" hidden><button data-f="floor" class="on" data-i18n="rl.floor">床</button><button data-f="desk" data-i18n="rl.desk">机</button><label class="hadj"><span data-i18n="rl.hadj">高さあわせ</span><input type="range" id="flatH" min="0" max="100" value="50"></label></div>
   <div id="msg2" aria-live="polite"></div>
@@ -192,6 +209,7 @@
       <label class="btn sec"><span data-i18n="mk.photo">📷 写真をえらぶ</span><input type="file" id="gogoIn" accept="image/*"></label>
       <small data-i18n="rl.photonote">写真は端末の中だけで使い、送信しません</small>
     </div>
+    <div id="startNote" hidden></div>
     <div class="warn" data-i18n-html="rl.warn">
       <b>⚠ 安全のために</b><br>
       ・<b>線路や車道には絶対に立ち入らず</b>、歩道や安全地帯から使ってください<br>
@@ -575,6 +593,50 @@ function onCompass(e) {
   if (camHeading == null) camHeading = h;
   else { const dd = ((h - camHeading + 540) % 360) - 180; camHeading = (camHeading + dd * 0.2 + 360) % 360; }
 }
+/* ---------- カメラ・位置情報・傾きセンサーを許可しなかったときの案内 ----------
+   スマホの種類（iPhone / Android / そのほか）に合わせて、設定のどこを直せばいいかを出す */
+const UA = navigator.userAgent;
+const IS_IOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+const IS_AND = /Android/.test(UA);
+const IN_APP = /Line\/|Instagram|FBAN|FBAV|Twitter|MicroMessenger|KAKAOTALK/i.test(UA);   // LINE などのアプリの中のブラウザ
+const PERM_STEPS = {
+  camera: IS_IOS ? ['ph.cam.ios1', 'ph.cam.ios2', 'ph.cam.ios3'] : IS_AND ? ['ph.cam.and1', 'ph.cam.and2', 'ph.cam.and3'] : ['ph.cam.pc1'],
+  location: IS_IOS ? ['ph.loc.ios1', 'ph.loc.ios2', 'ph.loc.ios3'] : ['ph.loc.and1', 'ph.loc.and2'],
+  motion: ['ph.mot.1', 'ph.mot.2'],
+  inapp: ['ph.inapp.1', 'ph.inapp.2'],
+  nocam: [], busy: [],
+};
+const PERM_HEAD = { camera: 'cam', location: 'loc', motion: 'mot', inapp: 'inapp', nocam: 'nocam', busy: 'busy' };
+let permRetry = null;
+function showPermHelp(kind, retry) {
+  const h = PERM_HEAD[kind];
+  $('phT').textContent = T('ph.' + h + '.t');
+  $('phMsg').textContent = T('ph.' + h + '.m');
+  $('phSteps').innerHTML = PERM_STEPS[kind].map((k) => `<li>${escH(T(k))}</li>`).join('');
+  $('phSteps').hidden = !PERM_STEPS[kind].length;
+  permRetry = retry || null; $('phRetry').hidden = !retry;
+  $('permHelp').hidden = false;
+  if (window.jatchuCount) jatchuCount('許可の案内 → ' + kind);
+}
+$('phClose').onclick = () => { $('permHelp').hidden = true; };
+$('phRetry').onclick = () => { $('permHelp').hidden = true; if (permRetry) permRetry(); };
+// 走っている画面の下に出す、小さな「直し方」ボタン
+const permIssues = new Set();
+function notePerm(kind) {
+  if (permIssues.has(kind)) return;
+  permIssues.add(kind);
+  const b = document.createElement('button');
+  b.textContent = T(kind === 'location' ? 'ph.note.loc' : 'ph.note.mot');
+  b.onclick = () => showPermHelp(kind);
+  $('permNote').appendChild(b); $('permNote').hidden = false;
+}
+// LINE などのアプリの中で開いたときは、はじめの画面で知らせる
+if (IN_APP) {
+  $('startNote').innerHTML = `${escH(T('ph.note.inapp'))}<br><button type="button" id="inappBtn">${escH(T('ph.inapp.t'))}</button>`;
+  $('startNote').hidden = false;
+  $('inappBtn').onclick = () => showPermHelp('inapp');
+}
+
 /* ---------- 歩いているかどうか（歩きスマホを止める） ----------
    スマホのゆれ（加速度の大きさのばらつき）が大きい状態が続いたら「歩いている」とみなす。
    位置情報の速さ（秒速1.2m以上）でも判断する */
@@ -616,7 +678,7 @@ function enableSensors() {
   const listenMotion = () => addEventListener('devicemotion', onMotion);
   // iPhone は、ボタンを押したその場で許可を聞く必要があるので、2つ同時に聞く
   const pm = DME && typeof DME.requestPermission === 'function' ? DME.requestPermission() : null;
-  if (typeof DOE.requestPermission === 'function') DOE.requestPermission().then((r) => r === 'granted' && listen()).catch(() => {});
+  if (typeof DOE.requestPermission === 'function') DOE.requestPermission().then((r) => { if (r === 'granted') listen(); else notePerm('motion'); }).catch(() => notePerm('motion'));
   else listen();
   if (pm) pm.then((r) => r === 'granted' && listenMotion()).catch(() => {}); else if (DME) listenMotion();
 }
@@ -686,7 +748,7 @@ function startGeo() {
     geo = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
     walk.speed = p.coords.speed > 0 ? p.coords.speed : 0;
     updateNear();
-  }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }, (err) => { if (err && err.code === 1) notePerm('location'); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 }
 // 地図と方位から予想した「線路の向き」：カメラの正面から右回りに何度か（-90〜90°）。使えないときは null
 const fold90 = (a) => ((a % 180) + 270) % 180 - 90;
@@ -1243,6 +1305,11 @@ async function startCamera(mode) {
     setSource(video, video.videoWidth, video.videoHeight);
   } catch (e) {
     $('msg').textContent = T('カメラを起動できませんでした: ') + e.message;
+    const kind = IN_APP && e.name !== 'NotFoundError' ? 'inapp'
+      : e.name === 'NotAllowedError' || e.name === 'SecurityError' || e.name === 'PermissionDeniedError' ? 'camera'
+      : e.name === 'NotFoundError' || e.name === 'OverconstrainedError' ? 'nocam'
+      : e.name === 'NotReadableError' || e.name === 'AbortError' ? 'busy' : 'camera';
+    showPermHelp(kind, kind === 'nocam' ? null : () => startCamera(mode));
     $('camBtn').disabled = false; $('camBtn').textContent = T('もう一度試す');
   }
 }
