@@ -660,13 +660,16 @@ function trackLineDist() {
 function updateDanger(now) {
   const camNear = !flat && W.pos && now - lastFound < 500 && trackLineDist() < (danger.on ? DG.camOff : DG.cam);
   const gpsNear = !!(geo && near && !near.far && geo.acc <= DG.acc && near.dist < DG.gps);
-  const want = camNear || gpsNear;
+  // テスト用： ?fakedist=1 で「地図の線路まで1m」として、暗くなるかを安全な場所で試せる
+  const fakeNear = params.has('fakedist') && +params.get('fakedist') < DG.gps;
+  const wantGps = gpsNear || fakeNear;
+  const want = camNear || wantGps;
   if (want) { danger.clear = null; if (danger.since == null) danger.since = now; }
   else { danger.since = null; if (danger.clear == null) danger.clear = now; }
   if (!danger.on && want && now - danger.since > DG.onMs) {
     danger.on = true;
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    if (!danger.counted && window.jatchuCount) { danger.counted = true; jatchuCount('安全 → 線路の近くで暗くした ' + (camNear ? 'カメラ' : '位置')); }
+    if (!danger.counted && window.jatchuCount) { danger.counted = true; jatchuCount('安全 → 線路の近くで暗くした ' + (camNear ? 'カメラ' : fakeNear ? 'テスト' : '位置')); }
   }
   if (danger.on && !want && now - danger.clear > DG.offMs) danger.on = false;
   $('danger').hidden = !danger.on;
