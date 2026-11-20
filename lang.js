@@ -194,6 +194,8 @@
     "ph.note.inapp": L("🌐 LINEなどのアプリの中ではカメラが使えないことがあります（直し方）", "🌐 The camera may not work inside apps like LINE (how to fix)", "🌐 在LINE等App裡可能無法使用相機（修正方法）", "🌐 在LINE等App里可能无法使用相机（解决方法）", "🌐 LINE 같은 앱 안에서는 카메라가 안 될 수 있습니다 (해결 방법)"),
     "dg.t": L("線路の中、または線路の近くにいます", "You are on or right next to the tracks", "你在軌道上或軌道旁邊", "你在轨道上或轨道旁边", "선로 안이나 선로 바로 옆에 있습니다"),
     "dg.m": L("ARを止めました。<br>すぐに歩道まで下がってください。", "AR has been stopped.<br>Please move back to the sidewalk now.", "已停止AR。<br>請立刻退回人行道。", "已停止AR。<br>请立刻退回人行道。", "AR을 멈췄습니다.<br>바로 인도로 물러나 주세요."),
+    "rl.armark": L("AR合成画像・実際の電車ではありません", "AR composite ・ Not a real tram", "AR合成影像・不是真正的電車", "AR合成图像・不是真正的电车", "AR 합성 이미지・실제 전차가 아닙니다"),
+    "my.cardnote": L("合成したイメージ画像です（実在の電車ではありません）", "Composite image (not a real tram)", "合成的示意圖（不是真正的電車）", "合成的示意图（不是真正的电车）", "합성한 이미지입니다 (실제 전차가 아닙니다)"),
     // ---- 作る・走らせる（ここまで） ----
     "tab.run":     L("走らせる", "Run", "奔跑", "奔跑", "달리기"),
     "tab.maker":  L("作る", "Create", "製作", "制作", "만들기"),

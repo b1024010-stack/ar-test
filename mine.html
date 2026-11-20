@@ -119,6 +119,7 @@
     <div class="acts" id="acts">
       <a class="run" id="aRun" data-i18n="my.run">🛤 線路で走らせる</a>
       <a class="edit" id="aEdit" data-i18n="my.edit">✏️ 編集・3Dで見る</a>
+      <button class="edit" id="aSave" data-i18n="my.save">🖼 画像で保存</button>
       <button class="del" id="aDel" data-i18n="my.del">🗑 消す</button>
     </div>
     <button class="close" id="closeBtn" data-i18n="gl.close">閉じる</button>
@@ -297,6 +298,65 @@ function openSheet(t){
   $("aRun").href = "rail.html?id=" + encodeURIComponent(t.id);
   $("aEdit").href = "maker.html?id=" + encodeURIComponent(t.id);
 }
+// ---- 画像で保存（スマホのデータが消えても、思い出が残るように） ----
+// 1600×1000 の絵に、電車・名前・日付・ジャッチュのロゴを入れて保存する
+async function cardImage(t){
+  // 車体の絵：保存してある大きい絵（2048×2048）から、車体の横の所を切り出す。なければ一覧用の小さい絵
+  let side = t.im;
+  try {
+    const rec = t.example ? null : await JatchuDB.get(t.id);
+    if (rec && rec.texture){
+      const bmp = await createImageBitmap(rec.texture), c = document.createElement("canvas");
+      c.width = 1885; c.height = 398; const cg = c.getContext("2d"); cg.drawImage(bmp, 81, 103, 1885, 398, 0, 0, 1885, 398);
+      if (!rec.marked) JatchuDB.drawMark(cg, 0, 0, 1885, 398);           // 前に保存した電車にも「AR合成」のマーク
+      const im = new Image(); im.src = c.toDataURL("image/jpeg", 0.92); await im.decode(); side = im;
+    }
+  } catch (e) { console.warn(e); }
+  const W = 1600, H = 1000, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"), F = getComputedStyle(document.body).fontFamily;
+  // 夜の大門町の空
+  const sky = x.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, "#0b1426"); sky.addColorStop(1, "#1a2a46");
+  x.fillStyle = sky; x.fillRect(0, 0, W, H);
+  x.fillStyle = "rgba(255,255,255,.5)"; for (let i = 0; i < 40; i++){ const sx = (i * 397) % W, sy = (i * 211) % 330 + 20; x.fillRect(sx, sy, 2, 2); }
+  // 架線とレール
+  const base = 790, wireY = 360;
+  x.strokeStyle = "#3b4d6b"; x.lineWidth = 3; x.beginPath(); x.moveTo(0, wireY); x.lineTo(W, wireY); x.stroke();
+  x.fillStyle = "#9aa6b8"; x.fillRect(0, base, W, 6); x.fillStyle = "#2a3346"; x.fillRect(0, base + 6, W, H - base - 6);
+  // 電車
+  drawTram(x, { im: side }, 100, base, W - 200, wireY);
+  // ロゴと名前
+  const logo = document.querySelector(".wm img");
+  if (logo && logo.complete && logo.naturalWidth) x.drawImage(logo, 70, 60, 64, 64);
+  x.fillStyle = "#ffb020"; x.font = `900 44px ${F}`; x.textBaseline = "middle"; x.fillText("ジャッチュ", 150, 94);
+  x.fillStyle = "#fff"; x.font = `900 76px ${F}`; x.textBaseline = "alphabetic";
+  x.fillText(String(t.name || "").slice(0, 20), 70, 230);
+  x.fillStyle = "#c9d2e3"; x.font = `400 32px ${F}`;
+  x.fillText(t.example ? JL.t("my.sample") : JL.t("my.when", { d: fmt(t.updated) }), 72, 285);
+  x.fillStyle = "rgba(255,255,255,.75)"; x.font = `400 26px ${F}`; x.textAlign = "right";
+  x.fillText("© ジャッチュ制作チーム　b1024010-stack.github.io/ar-test", W - 60, H - 40);
+  // 「合成した絵」の表示（消せないように絵の中にかく）
+  x.textAlign = "left"; x.fillStyle = "rgba(0,0,0,.55)"; x.fillRect(50, H - 82, 640, 56);
+  x.fillStyle = "#fff"; x.font = `700 26px ${F}`; x.fillText(JL.t("my.cardnote"), 70, H - 44);
+  return new Promise(ok => c.toBlob(ok, "image/png"));
+}
+$("aSave").onclick = async () => {
+  if (!cur) return;
+  const b = $("aSave"); b.disabled = true;
+  try {
+    const blob = await cardImage(cur);
+    const name = "jatchu-" + String(cur.name || "tram").replace(/[\\/:*?"<>|\s]+/g, "_") + ".png";
+    const file = new File([blob], name, { type: "image/png" });
+    // スマホ：共有メニューから「画像を保存」できる。パソコン：そのままダウンロード
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: cur.name }); } catch (e) { if (e.name !== "AbortError") throw e; }
+    } else {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }
+    if (window.jatchuCount) jatchuCount("自分の電車 → 画像で保存");
+  } catch (e) { console.error(e); alert(JL.t("my.saveng")); }
+  b.disabled = false;
+};
 $("aDel").onclick = async () => {
   if (!cur || cur.example) return;
   if (!confirm(JL.t("my.delq", { name: cur.name }))) return;

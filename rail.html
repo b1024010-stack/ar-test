@@ -128,8 +128,10 @@
     #eta.here { background: rgba(232,193,90,.95); color: #1b2a4a; }
     #msg2 { position: fixed; top: calc(108px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 12; font-size: 13px; text-shadow: 0 1px 2px #000; white-space: nowrap; }
     #msg2:empty { display: none; }
+    /* 「AR合成画像」の表示：消すボタンはなし（スクリーンショット・画面録画にも写る） */
     #wm { position: fixed; left: calc(8px + env(safe-area-inset-left)); bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 5; display: flex; align-items: center; gap: 4px;
-      font-size: 11px; font-weight: bold; opacity: .75; pointer-events: none; text-shadow: 0 1px 2px #000; }
+      padding: 3px 9px 3px 4px; border-radius: 999px; background: rgba(0,0,0,.6); font-size: 11px; font-weight: bold; pointer-events: none; }
+    #wm .sep { opacity: .5; }
     #wm img { width: 16px; height: 16px; border-radius: 4px; }
     #osm { position: fixed; right: calc(6px + env(safe-area-inset-right)); bottom: calc(2px + env(safe-area-inset-bottom)); z-index: 5; font-size: 9px; opacity: .6; }
     #dbg { position: fixed; top: calc(56px + env(safe-area-inset-top)); right: 8px; z-index: 6; width: 210px;
@@ -189,7 +191,7 @@
   </div>
   <div id="permNote" hidden></div>
   <div id="danger" hidden role="alert"><div class="ic">⚠</div><b data-i18n="dg.t">線路の中、または線路の近くにいます</b><div data-i18n-html="dg.m">ARを止めました。<br>すぐに歩道まで下がってください。</div></div>
-  <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
+  <div id="wm"><img src="icon-192.png" alt="">ジャッチュ<span class="sep">｜</span><span data-i18n="rl.armark">AR合成画像・実際の電車ではありません</span></div>
   <div id="flatBar" hidden><button data-f="floor" class="on" data-i18n="rl.floor">床</button><button data-f="desk" data-i18n="rl.desk">机</button><label class="hadj"><span data-i18n="rl.hadj">高さあわせ</span><input type="range" id="flatH" min="0" max="100" value="50"></label></div>
   <div id="msg2" aria-live="polite"></div>
   <div id="eta" hidden></div>
@@ -236,7 +238,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createRobot } from './robot.js?v=1';
+import { createRobot } from './robot.js?v=2';
 
 /* =========================================================
    設定
@@ -461,7 +463,7 @@ robot.group.visible = false; train.add(robot.group);
     const c = document.createElement('canvas'); c.width = 1885; c.height = 398;
     c.getContext('2d').drawImage(bmp, 81, 103, 1885, 398, 0, 0, 1885, 398);   // テクスチャの中の、車体の横の所
     const S = (design.state && design.state.S) || {};
-    const r = createRobot({ sideImage: c, c1: S.c1 || '#ffffff', c2: S.c2 || '#cfd6de' });
+    const r = createRobot({ sideImage: c, c1: S.c1 || '#ffffff', c2: S.c2 || '#cfd6de', mark: !design.marked });
     r.group.visible = robot.group.visible; train.remove(robot.group); train.add(r.group); robot = r;
   } catch (e) { console.warn(e); }
 })();
@@ -538,14 +540,19 @@ function onModel(gltf) {
   const m = gltf.scene;
   m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   // じぶんで作った電車の絵（ラッピング）を貼る
+  // 「AR合成」のマークは、電車の絵に直接かきこむ（前に保存した電車や、お手本の電車にもかく）
+  const wraps = [];
+  m.traverse((o) => { if (o.isMesh) for (const mt of (Array.isArray(o.material) ? o.material : [o.material])) if (mt && mt.name === 'H500_Wrap_Baked') wraps.push(mt); });
+  const setMap = (tex) => { tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; for (const mt of wraps) { mt.map = tex; mt.needsUpdate = true; } };
+  const withMark = (img) => {
+    const n = img.width || 2048, c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0, n, n); JatchuDB.markTexture(g, n);
+    setMap(new THREE.CanvasTexture(c));
+  };
   if (design && design.texture) {
-    const tex = new THREE.TextureLoader().load(URL.createObjectURL(design.texture));
-    tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-    m.traverse((o) => {
-      if (!o.isMesh) return;
-      for (const mt of (Array.isArray(o.material) ? o.material : [o.material])) if (mt && mt.name === 'H500_Wrap_Baked') { mt.map = tex; mt.needsUpdate = true; }
-    });
-  }
+    if (design.marked) setMap(new THREE.TextureLoader().load(URL.createObjectURL(design.texture)));
+    else createImageBitmap(design.texture).then(withMark).catch((e) => console.warn(e));
+  } else if (wraps[0] && wraps[0].map && wraps[0].map.image) withMark(wraps[0].map.image);
   tramModel = m; m.visible = runMode === 'tram';
   train.add(m);                     // モデルは実物大 [m]・X が車体の長さ・Y が上
   trainReady = true;

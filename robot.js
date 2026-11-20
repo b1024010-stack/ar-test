@@ -45,7 +45,7 @@ const EXTRAS = [
 ];
 
 // 電車の横の絵（デザイン）に、窓をかきたす
-function sideCanvas(src) {
+function sideCanvas(src, mark = true) {
   const c = document.createElement('canvas'); c.width = 1536; c.height = 352;
   const g = c.getContext('2d'), w = c.width, h = c.height;
   if (src) g.drawImage(src, 0, 0, w, h);
@@ -59,12 +59,13 @@ function sideCanvas(src) {
   win(w * 0.015, w * 0.07);
   for (let i = 0; i < 7; i++) win(w * (0.12 + i * 0.105), w * 0.08);
   win(w * 0.915, w * 0.07);
+  if (mark && window.JatchuDB) JatchuDB.drawMark(g, 0, 0, w, h);   // 「AR合成」のマーク
   return c;
 }
 
-export function createRobot({ sideImage = null, c1 = '#ffffff', c2 = '#cfd6de' } = {}) {
+export function createRobot({ sideImage = null, c1 = '#ffffff', c2 = '#cfd6de', mark = true } = {}) {
   const group = new THREE.Group();
-  const tex = new THREE.CanvasTexture(sideCanvas(sideImage)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const tex = new THREE.CanvasTexture(sideCanvas(sideImage, mark)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   const side = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.05 });
   const body = new THREE.MeshStandardMaterial({ color: c1, roughness: 0.55, metalness: 0.05 });
   const roof = new THREE.MeshStandardMaterial({ color: c2, roughness: 0.7, metalness: 0.1 });

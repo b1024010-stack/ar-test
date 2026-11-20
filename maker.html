@@ -399,6 +399,7 @@ function paint(){
   paintSide();                                                   // 車体の横（デザイン＋おえかき＋ステッカー）
   for (const [x0,y0] of SIDES) tg.drawImage(side, x0, y0);
   for (const [x0,y0,x1,y1] of ENDS){ tg.save(); tg.beginPath(); tg.rect(x0,y0,x1-x0,y1-y0); tg.clip(); tg.translate(x0,y0); drawEnd(tg,x1-x0,y1-y0); tg.restore(); }
+  JatchuDB.markTexture(tg);                                      // 「AR合成」のマーク（ステッカーより上にかくので、消せない）
   drawEditor();
   $("ttl").textContent = (S.text || T("自分の電車"));
 }
@@ -763,7 +764,7 @@ async function save(force){
     const c = mk(640, Math.round(640 * SH / SW)); c.getContext("2d").drawImage(side, 0, 0, c.width, c.height);
     const { photo, photoBlob, ...st } = S;
     await JatchuDB.put({ id: DID, name: S.text || "自分の電車", created: created || (created = Date.now()), updated: Date.now(),
-      state: { S: st, strokes: ART.strokes, stickers: ART.stickers, photos: usedPhotos() }, photo: S.photoBlob || null, texture, thumb: c.toDataURL("image/jpeg", 0.8) });
+      state: { S: st, strokes: ART.strokes, stickers: ART.stickers, photos: usedPhotos() }, photo: S.photoBlob || null, texture, marked: true, thumb: c.toDataURL("image/jpeg", 0.8) });
     JatchuDB.current = DID; savedOnce = true; lastSig = sig();
     $("saveState").textContent = T("✓ 保存しました（{t}）", { t: new Date().toLocaleTimeString().slice(0, -3) });
   } catch (e) { console.error(e); $("saveState").textContent = T("⚠ 保存できませんでした（プライベートブラウズでは保存できません）"); }
