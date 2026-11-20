@@ -192,6 +192,8 @@
     "ph.note.loc": L("📍 位置情報がオフ（直し方）", "📍 Location off (how to fix)", "📍 位置資訊關閉（修正方法）", "📍 位置信息关闭（解决方法）", "📍 위치 정보 꺼짐 (해결 방법)"),
     "ph.note.mot": L("📱 傾きセンサーがオフ（直し方）", "📱 Motion sensor off (how to fix)", "📱 動作感應器關閉（修正方法）", "📱 动作传感器关闭（解决方法）", "📱 기울기 센서 꺼짐 (해결 방법)"),
     "ph.note.inapp": L("🌐 LINEなどのアプリの中ではカメラが使えないことがあります（直し方）", "🌐 The camera may not work inside apps like LINE (how to fix)", "🌐 在LINE等App裡可能無法使用相機（修正方法）", "🌐 在LINE等App里可能无法使用相机（解决方法）", "🌐 LINE 같은 앱 안에서는 카메라가 안 될 수 있습니다 (해결 방법)"),
+    "dg.t": L("線路の中、または線路の近くにいます", "You are on or right next to the tracks", "你在軌道上或軌道旁邊", "你在轨道上或轨道旁边", "선로 안이나 선로 바로 옆에 있습니다"),
+    "dg.m": L("ARを止めました。<br>すぐに歩道まで下がってください。", "AR has been stopped.<br>Please move back to the sidewalk now.", "已停止AR。<br>請立刻退回人行道。", "已停止AR。<br>请立刻退回人行道。", "AR을 멈췄습니다.<br>바로 인도로 물러나 주세요."),
     // ---- 作る・走らせる（ここまで） ----
     "tab.run":     L("走らせる", "Run", "奔跑", "奔跑", "달리기"),
     "tab.maker":  L("作る", "Create", "製作", "制作", "만들기"),

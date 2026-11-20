@@ -101,6 +101,11 @@
     #permNote button { border: 0; border-radius: 999px; padding: 8px 14px; background: rgba(120,40,30,.9); color: #fff; font: inherit; font-size: 13px; font-weight: bold; white-space: nowrap; }
     #startNote { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255,176,32,.15); border: 1px solid #e8c15a; font-size: 13px; line-height: 1.6; max-width: 420px; text-align: left; }
     #startNote button { margin-top: 6px; border: 0; background: none; color: #e8c15a; font: inherit; font-weight: bold; text-decoration: underline; padding: 0; }
+    /* 線路の中・すぐ近くにいるときは、画面を暗くして止める */
+    #danger { position: fixed; inset: 0; z-index: 11; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px;
+      background: #000; color: #fff; text-align: center; font-size: 16px; line-height: 1.7; }
+    #danger .ic { font-size: 64px; color: #ff5a4a; }
+    #danger b { font-size: 22px; color: #ff8a7a; }
     /* 歩いているときの注意 */
     #walkWarn { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px;
       background: rgba(10,14,26,.88); text-align: center; font-size: 15px; line-height: 1.7; }
@@ -183,6 +188,7 @@
     </div>
   </div>
   <div id="permNote" hidden></div>
+  <div id="danger" hidden role="alert"><div class="ic">⚠</div><b data-i18n="dg.t">線路の中、または線路の近くにいます</b><div data-i18n-html="dg.m">ARを止めました。<br>すぐに歩道まで下がってください。</div></div>
   <div id="wm" aria-hidden="true"><img src="icon-192.png" alt="">ジャッチュ</div>
   <div id="flatBar" hidden><button data-f="floor" class="on" data-i18n="rl.floor">床</button><button data-f="desk" data-i18n="rl.desk">机</button><label class="hadj"><span data-i18n="rl.hadj">高さあわせ</span><input type="range" id="flatH" min="0" max="100" value="50"></label></div>
   <div id="msg2" aria-live="polite"></div>
@@ -635,6 +641,36 @@ if (IN_APP) {
   $('startNote').innerHTML = `${escH(T('ph.note.inapp'))}<br><button type="button" id="inappBtn">${escH(T('ph.inapp.t'))}</button>`;
   $('startNote').hidden = false;
   $('inappBtn').onclick = () => showPermHelp('inapp');
+}
+
+/* ---------- 線路の中・すぐ近くにいたら、画面を暗くしてARを止める ----------
+   2つの方法で調べ、どちらかに当てはまったら暗くする
+   ① 位置情報：地図の線路まで DG.gps m 以内（位置の誤差が DG.acc m 以下のときだけ使う）
+   ② カメラ：見つけたレールの線が、スマホの真下や DG.cam m 以内を通っている（＝線路の上や、すぐ横にいる）
+   ※ 位置情報は数mずれることがあるので、①だけでなく②も使う。それでも、すべてを見分けられるわけではない */
+const DG = { gps: 2.5, acc: 8, cam: 1.5, camOff: 2.2, onMs: 600, offMs: 1500 };
+const danger = { on: false, since: null, clear: null, counted: false };
+// カメラ（足元）から、見つけたレールの中心線までの水平の距離 [m]
+function trackLineDist() {
+  if (!W.pos || !W.dir) return Infinity;
+  const dx = W.dir.x, dz = W.dir.z, L = Math.hypot(dx, dz);
+  if (L < 1e-3) return Infinity;
+  return Math.abs((-W.pos.x) * (dz / L) - (-W.pos.z) * (dx / L));
+}
+function updateDanger(now) {
+  const camNear = !flat && W.pos && now - lastFound < 500 && trackLineDist() < (danger.on ? DG.camOff : DG.cam);
+  const gpsNear = !!(geo && near && !near.far && geo.acc <= DG.acc && near.dist < DG.gps);
+  const want = camNear || gpsNear;
+  if (want) { danger.clear = null; if (danger.since == null) danger.since = now; }
+  else { danger.since = null; if (danger.clear == null) danger.clear = now; }
+  if (!danger.on && want && now - danger.since > DG.onMs) {
+    danger.on = true;
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if (!danger.counted && window.jatchuCount) { danger.counted = true; jatchuCount('安全 → 線路の近くで暗くした ' + (camNear ? 'カメラ' : '位置')); }
+  }
+  if (danger.on && !want && now - danger.clear > DG.offMs) danger.on = false;
+  $('danger').hidden = !danger.on;
+  return danger.on;
 }
 
 /* ---------- 歩いているかどうか（歩きスマホを止める） ----------
@@ -1152,7 +1188,7 @@ function loop(now) {
   // テスト用： ?fakepose=1（正面）/ ?fakepose=side（横）で、線路があることにして表示を確かめる
   if (params.has('fakepose')) {
     const side = params.get('fakepose') === 'side';
-    W.pos = side ? new THREE.Vector3(0, -1.4, -7) : new THREE.Vector3(0.8, -1.4, 0);
+    W.pos = side ? new THREE.Vector3(0, -1.4, -7) : new THREE.Vector3(3, -1.4, 0);
     W.quat = side ? new THREE.Quaternion() : new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
     W.dir = new THREE.Vector3(1, 0, 0).applyQuaternion(W.quat); W.side = side; anchor.visible = true;
   }
@@ -1164,6 +1200,8 @@ function loop(now) {
   const walking = updateWalk(now);
   $('walkWarn').hidden = !walking;
   if (walking) anchor.visible = false;
+  const inDanger = updateDanger(now);
+  if (inDanger) anchor.visible = false;
   if (trainReady) train.position.set(trainPosNow(now), 0, 0);
   $('autoBtn').hidden = manual == null || !anchor.visible;
   if (anchor.visible && hintT0 == null) hintT0 = now;
@@ -1175,7 +1213,8 @@ function loop(now) {
 
   const st = $('status');
   st.hidden = false;
-  st.textContent = flat && !walking ? (W.pos ? `${ICON[runMode]} ${T('走行中｜別の所をタップすると置きなおせるよ')}` : T('{p}をタップして、電車を置いてね', { p: T(flat.kind === 'desk' ? 'rl.desk' : 'rl.floor') }))
+  st.textContent = inDanger ? T('dg.t')
+    : flat && !walking ? (W.pos ? `${ICON[runMode]} ${T('走行中｜別の所をタップすると置きなおせるよ')}` : T('{p}をタップして、電車を置いてね', { p: T(flat.kind === 'desk' ? 'rl.desk' : 'rl.floor') }))
     : walking ? T('🚶 立ち止まってください') : realSoon ? T('本物の電車が通過するまでお待ちください')
     : taps.length === 1 ? T('もう1本のレールをタップしてね')
     : anchor.visible ? (now - lastFound > 400 ? ICON[runMode] + T(' 走行中（レールを探しています）')
@@ -1213,6 +1252,7 @@ function drawDebug(lines, b, edges) {
     `処理 ${procMs.toFixed(1)} ms / ${fps.toFixed(0)} fps<br>センサー ${upFromSensor() ? '使用中' : 'なし（動画）'}<br>` +
     `ジャイロ ${gyroOK() ? '使用中' : 'なし'} ・ 方位 ${camHeading == null ? '—' : Math.round(camHeading) + '°'} ・ GPS ${geo ? '±' + Math.round(geo.acc) + 'm' : '—'}<br>` +
     `線路の向きの予想 ${mapPrior() == null ? '—' : Math.round(mapPrior()) + '°'}<br>` +
+    `線路の中心線まで ${isFinite(trackLineDist()) ? trackLineDist().toFixed(1) + ' m' : '—'} ・ 地図の線路まで ${near && !near.far ? near.dist.toFixed(1) + ' m' : '—'} ・ 暗転 ${danger.on ? 'はい' : 'いいえ'}<br>` +
     `ゆれ ${(walk.sd || 0).toFixed(2)}（${walk.buf.length}件）・ 速さ ${walk.speed.toFixed(1)} m/s ・ 歩き ${walk.on ? 'はい' : 'いいえ'}`;
 }
 
@@ -1296,7 +1336,8 @@ function setSource(el, w, h) {
 }
 async function startCamera(mode) {
   enableSensors(); useSensor = true;
-  if (mode === 'flat') { setFlat('floor'); $('flatBar').hidden = false; $('osm').hidden = true; } else startGeo();
+  if (mode === 'flat') { setFlat('floor'); $('flatBar').hidden = false; $('osm').hidden = true; }
+  startGeo();                                    // 線路の中に入っていないかを見守るため、床・机モードでも使う
   $('camBtn').disabled = true; $('camBtn').textContent = T('起動中…');
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: false,
